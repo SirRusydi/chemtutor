@@ -1,0 +1,628 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>ChemTutor V13.5: Logo & Feedback</title>
+    <style>
+        :root {
+            --primary: #0284c7;
+            --secondary: #f0f9ff;
+            --text: #1f2937;
+            --success: #16a34a;
+            --warning: #ca8a04;
+            --error: #dc2626;
+            --bubble-user: #0369a1;
+            --bubble-bot: #f3f4f6;
+            --bubble-teacher: #fffbeb;
+        }
+
+        body {
+            font-family: 'Segoe UI', Roboto, Helvetica, Arial, sans-serif;
+            margin: 0; padding: 0; background-color: #f8fafc;
+            display: flex; justify-content: center; height: 100vh;
+        }
+
+        #app-container {
+            width: 100%; max-width: 600px; background: white;
+            display: flex; flex-direction: column; height: 100%;
+            box-shadow: 0 10px 15px -3px rgba(0, 0, 0, 0.1);
+        }
+
+        header {
+            background: var(--primary); color: white; padding: 1rem;
+            text-align: center; font-weight: bold; font-size: 1.1rem; flex-shrink: 0;
+            display: flex; justify-content: space-between; align-items: center;
+        }
+
+        #chat-window {
+            flex: 1; padding: 1rem; overflow-y: auto;
+            display: flex; flex-direction: column; gap: 12px; scroll-behavior: smooth;
+        }
+
+        .message {
+            max-width: 85%; padding: 12px 16px; border-radius: 16px;
+            line-height: 1.5; font-size: 0.95rem; animation: slideIn 0.2s ease;
+        }
+        .bot-msg { background: var(--bubble-bot); color: var(--text); align-self: flex-start; border-bottom-left-radius: 4px; }
+        .user-msg { background: var(--bubble-user); color: white; align-self: flex-end; border-bottom-right-radius: 4px; }
+        
+        /* Teacher Hint Styling - Highlighted for feedback */
+        .teacher-hint {
+            background: var(--bubble-teacher); color: #92400e;
+            border: 1px solid #fde68a; font-style: italic; font-size: 0.9rem;
+            padding: 10px 14px; border-radius: 12px; margin-top: -6px; margin-bottom: 6px;
+            align-self: flex-start; width: fit-content; max-width: 90%;
+            display: flex; align-items: flex-start; gap: 8px;
+            animation: fadeIn 0.5s ease;
+            box-shadow: 0 2px 4px rgba(0,0,0,0.05);
+        }
+
+        /* Input Area & Logo */
+        #input-area {
+            border-top: 1px solid #e2e8f0; padding: 1rem; background: white;
+            min-height: 140px; display: flex; flex-direction: column;
+            align-items: center; justify-content: center; flex-shrink: 0; gap: 10px;
+            transition: all 0.5s cubic-bezier(0.4, 0, 0.2, 1);
+            overflow: hidden;
+        }
+        #input-area.collapsed {
+            min-height: 0; height: 0; padding: 0; border-top: none; opacity: 0;
+        }
+
+        /* LOGO STYLING */
+        #app-logo {
+            max-width: 120px; height: auto; margin-bottom: 15px;
+            display: none; /* Hidden by default, shown in startApp */
+            animation: fadeIn 0.8s ease;
+        }
+
+        .options-grid { display: flex; flex-wrap: wrap; gap: 8px; justify-content: center; width: 100%; }
+
+        button.option-btn {
+            background: white; border: 1px solid #cbd5e1; color: var(--text);
+            padding: 10px 16px; border-radius: 20px; cursor: pointer; font-weight: 500; font-size: 0.95rem;
+            transition: all 0.2s;
+        }
+        button.option-btn:hover { background: var(--secondary); border-color: var(--primary); color: var(--primary); transform: translateY(-1px); }
+        
+        button.primary-btn {
+            background: var(--primary); color: white; border: none; padding: 12px 24px;
+            font-size: 1rem; border-radius: 8px; cursor: pointer; width: 100%; font-weight: 600;
+        }
+
+        .nav-controls {
+            display: flex; gap: 10px; width: 100%; margin-top: 5px;
+            padding-top: 10px; border-top: 1px dashed #e2e8f0;
+        }
+        button.nav-btn {
+            flex: 1; padding: 8px; border-radius: 6px; border: 1px solid #cbd5e1;
+            background: #f1f5f9; color: #475569; font-size: 0.85rem; font-weight: 600; cursor: pointer;
+        }
+        button.reset-btn { color: var(--error); border-color: #fecaca; background: #fef2f2; }
+
+        .chain-visualizer { display: flex; flex-wrap: wrap; gap: 8px; justify-content: center; padding: 10px; }
+        .c-atom {
+            width: 38px; height: 38px; border-radius: 50%; background: white; border: 2px solid #cbd5e1;
+            display: flex; align-items: center; justify-content: center; font-weight: bold; color: #64748b; cursor: pointer;
+            transition: all 0.2s;
+        }
+        .c-atom:hover { border-color: var(--primary); transform: scale(1.1); }
+        .c-atom.active { background: var(--primary); color: white; border-color: var(--primary); }
+        
+        .result-card { background: white; border: 1px solid #e2e8f0; border-radius: 12px; padding: 20px; text-align: center; box-shadow: 0 4px 6px -1px rgba(0,0,0,0.05); }
+        .result-name { font-size: 1.5rem; font-weight: 800; color: var(--primary); margin: 12px 0; word-wrap: break-word; }
+        .structure-img { max-width: 100%; border-radius: 8px; margin-top: 15px; border: 1px solid #f1f5f9; }
+        .status-badge { display: inline-block; padding: 4px 12px; border-radius: 20px; font-size: 0.85rem; font-weight: 600; margin-bottom: 8px; }
+        .status-verified { background: #dcfce7; color: #166534; border: 1px solid #bbf7d0; }
+        .status-theoretical { background: #fef9c3; color: #854d0e; border: 1px solid #fde047; }
+        .meta-info { font-size: 0.85rem; color: #64748b; margin-top: 5px; }
+
+        @keyframes slideIn { from { opacity: 0; transform: translateY(10px); } to { opacity: 1; transform: translateY(0); } }
+        @keyframes fadeIn { from { opacity: 0; } to { opacity: 1; } }
+    </style>
+</head>
+<body>
+
+<div id="app-container">
+    <header>
+        <span>ChemTutor V13.5</span>
+        <button style="background:none; border:none; color:white; cursor:pointer; font-size:1.2rem;" onclick="startApp(true)">↺</button>
+    </header>
+    <div id="chat-window"></div>
+    
+    <div id="input-area">
+        <img id="app-logo" src="https://raw.githubusercontent.com/sirrusydi/chemtutor/main/chemtutor.png.png" alt="App Logo" onerror="this.style.display='none'">
+        
+        <button id="start-btn" class="primary-btn" onclick="startApp(true)">Start Learning</button>
+        <div id="controls" class="options-grid"></div>
+        <div id="nav-area" style="width:100%"></div>
+    </div>
+</div>
+
+<script>
+    const roots = ["meth", "eth", "prop", "but", "pent", "hex", "hept", "oct", "non", "dec"];
+    const structureTypes = ["Straight Chain", "Cyclic Ring", "Benzene Ring"];
+
+    const functionalGroups = [
+        { name: "Carboxylic Acid", suffix: "oic acid", cyclicSuffix: "carboxylic acid", priority: 10, type: "terminal", allowMulti: true },
+        { name: "Ester", suffix: "oate", cyclicSuffix: "carboxylate", priority: 9, type: "ester", allowMulti: false },
+        { name: "Amide", suffix: "amide", cyclicSuffix: "carboxamide", priority: 8, type: "terminal", allowMulti: false },
+        { name: "Nitrile", suffix: "nitrile", cyclicSuffix: "carbonitrile", priority: 7, type: "terminal", allowMulti: false },
+        { name: "Aldehyde", suffix: "al", cyclicSuffix: "carbaldehyde", priority: 6, type: "terminal", allowMulti: true },
+        { name: "Ketone", suffix: "one", cyclicSuffix: "one", priority: 5, type: "internal", allowMulti: true },
+        { name: "Alcohol", suffix: "ol", cyclicSuffix: "ol", priority: 4, type: "internal", allowMulti: true },
+        { name: "Amine", suffix: "amine", cyclicSuffix: "amine", priority: 3, type: "internal", allowMulti: true },
+        { name: "Alkene", suffix: "ene", cyclicSuffix: "ene", priority: 2, type: "internal", allowMulti: true },
+        { name: "Alkane", suffix: "ane", cyclicSuffix: "ane", priority: 1, type: "none", allowMulti: false }
+    ];
+
+    const substituentsList = ["Methyl", "Ethyl", "Propyl", "Chloro", "Bromo", "Iodo", "Nitro", "Hydroxy", "Amino"];
+    let state = { structureType: null, carbonCount: 0, group: null, groupCount: 1, groupLocants: [], esterAlkylCount: 0, substituents: [] };
+
+    // --- UI Engines ---
+    function addMessage(html, isUser = false) {
+        const chat = document.getElementById("chat-window");
+        const div = document.createElement("div");
+        div.className = `message ${isUser ? "user-msg" : "bot-msg"}`;
+        div.innerHTML = html;
+        chat.appendChild(div);
+        chat.scrollTop = chat.scrollHeight;
+    }
+
+    // Extensive Feedback Function
+    function addTeacherHint(text) {
+        const chat = document.getElementById("chat-window");
+        const div = document.createElement("div");
+        div.className = "teacher-hint";
+        div.innerHTML = `<span>🎓</span> <div>${text}</div>`;
+        chat.appendChild(div);
+        chat.scrollTop = chat.scrollHeight;
+    }
+
+    function toggleInputArea(visible) {
+        const area = document.getElementById("input-area");
+        if (visible) area.classList.remove("collapsed");
+        else area.classList.add("collapsed");
+    }
+
+    function clearControls() {
+        document.getElementById("controls").innerHTML = "";
+        document.getElementById("nav-area").innerHTML = "";
+        document.getElementById("start-btn").style.display = "none";
+        document.getElementById("app-logo").style.display = "none"; // Hide logo when controls are active
+    }
+
+    function addNavButtons(backFunction) {
+        const navArea = document.getElementById("nav-area");
+        navArea.innerHTML = "";
+        const wrapper = document.createElement("div");
+        wrapper.className = "nav-controls";
+
+        if (backFunction) {
+            const backBtn = document.createElement("button");
+            backBtn.className = "nav-btn";
+            backBtn.innerHTML = "← Back";
+            backBtn.onclick = backFunction;
+            wrapper.appendChild(backBtn);
+        }
+        const resetBtn = document.createElement("button");
+        resetBtn.className = "nav-btn reset-btn";
+        resetBtn.innerHTML = "↺ Reset";
+        resetBtn.onclick = () => startApp(true);
+        wrapper.appendChild(resetBtn);
+        navArea.appendChild(wrapper);
+    }
+
+    // --- Inputs ---
+    function createButtons(options, callback, backFn = null) {
+        const controls = document.getElementById("controls");
+        controls.innerHTML = "";
+        options.forEach(opt => {
+            const btn = document.createElement("button");
+            btn.className = "option-btn";
+            btn.innerText = opt;
+            btn.onclick = () => callback(opt);
+            controls.appendChild(btn);
+        });
+        addNavButtons(backFn);
+    }
+
+    function createNumberInput(max, callback, label = "Confirm", backFn = null) {
+        const controls = document.getElementById("controls");
+        controls.innerHTML = "";
+        const select = document.createElement("select");
+        select.style.padding = "10px"; select.style.fontSize = "16px"; select.style.marginRight = "10px";
+        for(let i=1; i<=max; i++) {
+            const opt = document.createElement("option"); opt.value = i; opt.text = i; select.appendChild(opt);
+        }
+        const btn = document.createElement("button");
+        btn.className = "primary-btn"; btn.style.width = "auto"; btn.innerText = label;
+        btn.onclick = () => callback(parseInt(select.value));
+        controls.appendChild(select); controls.appendChild(btn);
+        addNavButtons(backFn);
+    }
+
+    function showChainVisualizer(count, targetSelections, callback, backFn = null, min = 1, max = null) {
+        if (max === null) max = count;
+        const controls = document.getElementById("controls");
+        controls.innerHTML = "";
+        
+        const wrapper = document.createElement("div");
+        wrapper.style.textAlign = "center";
+        wrapper.innerHTML = `<div style="margin-bottom:8px; font-size:0.9rem">Select <b>${targetSelections}</b> position(s) by clicking the atoms:</div>`;
+
+        const div = document.createElement("div");
+        div.className = "chain-visualizer";
+
+        let limit = (state.structureType === "Benzene Ring") ? 6 : max;
+        let start = (state.structureType === "Benzene Ring") ? 1 : min;
+        let selections = [];
+
+        for(let i=start; i<=limit; i++) {
+            const btn = document.createElement("div");
+            btn.className = "c-atom";
+            btn.innerText = i;
+            btn.onclick = () => {
+                if (targetSelections === 1) {
+                    callback(i);
+                } else {
+                    if(selections.includes(i)) {
+                        selections = selections.filter(s => s !== i);
+                        btn.classList.remove("active");
+                    } else if (selections.length < targetSelections) {
+                        selections.push(i);
+                        btn.classList.add("active");
+                    }
+                }
+            };
+            div.appendChild(btn);
+        }
+        wrapper.appendChild(div);
+
+        if (targetSelections > 1) {
+            const btn = document.createElement("button");
+            btn.className = "primary-btn"; btn.innerText = "Confirm Positions"; btn.style.marginTop = "10px";
+            btn.onclick = () => {
+                if(selections.length === targetSelections) callback(selections);
+                else alert(`Please select exactly ${targetSelections} positions.`);
+            };
+            wrapper.appendChild(btn);
+        }
+        controls.appendChild(wrapper);
+        addNavButtons(backFn);
+    }
+
+    // --- App Flow ---
+    function startApp(isFirstRun = false) {
+        toggleInputArea(true);
+        state = { structureType: null, carbonCount: 0, group: null, groupCount: 1, groupLocants: [], substituents: [] };
+        clearControls();
+        
+        // LOGO LOGIC: Show logo on start screen
+        document.getElementById("app-logo").style.display = "block";
+        document.getElementById("start-btn").style.display = "block";
+
+        if (isFirstRun) {
+            document.getElementById("chat-window").innerHTML = "";
+            addMessage("Hi! I'm ChemTutor. I'll help you build IUPAC names and give you detailed feedback on the rules.");
+        } else {
+            const chat = document.getElementById("chat-window");
+            const div = document.createElement("div");
+            div.className = "session-separator"; div.style.textAlign="center"; div.style.color="#cbd5e1"; div.innerText = "--- New Molecule ---";
+            chat.appendChild(div);
+        }
+    }
+
+    // Modified to be called by Start Button
+    function beginSession() {
+        document.getElementById("app-logo").style.display = "none"; // Hide logo when questions start
+        document.getElementById("start-btn").style.display = "none";
+        askFunctionalGroup();
+    }
+    
+    // Wire up the start button to beginSession instead of startApp(true) recursive
+    document.getElementById("start-btn").onclick = beginSession;
+
+    function askFunctionalGroup() {
+        addMessage("1. What is the main functional group?");
+        createButtons(functionalGroups.map(g => g.name), (choice) => {
+            addMessage(choice, true);
+            state.group = functionalGroups.find(g => g.name === choice);
+            
+            // FEEDBACK: Functional Group Priority & Suffix
+            if(state.group.name === "Alkane") {
+                addTeacherHint("<b>Rule:</b> Alkanes are the base hydrocarbons with single bonds. The suffix is <b>-ane</b>.");
+            } else {
+                addTeacherHint(`<b>Priority Rule:</b> The ${state.group.name} is the highest priority group here. It determines the parent suffix: <b>-${state.group.suffix}</b> (or ${state.group.cyclicSuffix} if cyclic).`);
+            }
+
+            if (state.group.type === "ester") askEsterAlkyl();
+            else if (state.group.allowMulti) askGroupCount();
+            else askStructureType();
+        }, () => startApp(true));
+    }
+
+    function askGroupCount() {
+        addMessage(`How many <b>${state.group.name}</b> groups?`);
+        createButtons(["1 (Mono)", "2 (Di)", "3 (Tri)"], (choice) => {
+            state.groupCount = parseInt(choice.charAt(0));
+            addMessage(choice, true);
+            if(state.groupCount > 1) {
+                addTeacherHint(`<b>Multiplier Rule:</b> Since there are ${state.groupCount} identical groups, we must add the prefix <b>'${state.groupCount === 2 ? 'di' : 'tri'}'</b> before the suffix (e.g., -diol, -dione).`);
+            }
+            askStructureType();
+        }, askFunctionalGroup);
+    }
+
+    function askEsterAlkyl() {
+        addMessage("Carbons in the alkyl group (on Oxygen)?");
+        createNumberInput(10, (num) => {
+            addMessage(`${num} (${roots[num-1]}yl)`, true);
+            state.esterAlkylCount = num;
+            addTeacherHint(`<b>Ester Rule:</b> Esters are named in two parts. The part attached to the oxygen comes first as an alkyl group: <b>${roots[num-1]}yl</b>.`);
+            askEsterAcid();
+        }, "Next", askFunctionalGroup);
+    }
+
+    function askEsterAcid() {
+        addMessage("Carbons in the parent acid chain?");
+        createNumberInput(10, (num) => {
+            addMessage(num.toString(), true);
+            state.carbonCount = num;
+            state.structureType = "Straight Chain"; 
+            askSubstituents(askEsterAcid);
+        }, "Next", askEsterAlkyl);
+    }
+
+    function askStructureType() {
+        addMessage("Parent skeleton?");
+        createButtons(structureTypes, (choice) => {
+            addMessage(choice, true);
+            state.structureType = choice;
+            
+            if (choice === "Cyclic Ring") {
+                if (state.group.cyclicSuffix !== state.group.suffix) {
+                    addTeacherHint(`<b>Cyclic Rule:</b> When a ${state.group.name} is on a ring, the carbon is <i>outside</i> the ring. We change the suffix to the special cyclic form: <b>-${state.group.cyclicSuffix}</b>.`);
+                } else {
+                    addTeacherHint("<b>Cyclic Rule:</b> We add the prefix <b>cyclo-</b> to the parent name to indicate a ring structure.");
+                }
+                askCarbonCount();
+            } else if (choice === "Benzene Ring") {
+                state.carbonCount = 6;
+                addTeacherHint("<b>Aromatic Rule:</b> Benzene derivatives often have unique common names retained in IUPAC (like Phenol for -OH on Benzene).");
+                checkBenzeneRules();
+            } else {
+                askCarbonCount();
+            }
+        }, () => state.group.allowMulti ? askGroupCount() : askFunctionalGroup());
+    }
+
+    function askCarbonCount() {
+        addMessage(`How many carbons in the ${state.structureType.includes("Ring")?"ring":"chain"}?`);
+        createNumberInput(10, (num) => {
+            addMessage(num.toString(), true);
+            if (state.group.name === "Ketone" && !state.structureType.includes("Ring") && num < 3) return addMessage(`<span style="color:red">Need 3+ carbons</span>`);
+            if (state.structureType.includes("Ring") && num < 3) return addMessage(`<span style="color:red">Need 3+ carbons</span>`);
+
+            state.carbonCount = num;
+            let root = roots[num-1];
+            if(state.structureType.includes("Ring")) root = "cyclo" + root;
+            
+            addTeacherHint(`<b>Parent Chain:</b> A ${num}-carbon chain corresponds to the root <b>"${root}"</b>.`);
+            askGroupLocant();
+        }, "Confirm", askStructureType);
+    }
+
+    function checkBenzeneRules() {
+        state.groupLocants = [1];
+        if (state.groupCount > 1) askGroupLocant();
+        else askSubstituents(askStructureType);
+    }
+
+    function askGroupLocant() {
+        if (state.group.name === "Alkane") { state.groupLocants = []; return askSubstituents(askCarbonCount); }
+        if (state.group.type === "terminal" && state.structureType === "Straight Chain") {
+            if (state.groupCount === 1) state.groupLocants = [1];
+            else if (state.groupCount === 2) state.groupLocants = [1, state.carbonCount];
+            
+            addTeacherHint("<b>Numbering Rule:</b> Terminal groups (like Acids/Aldehydes) automatically get position 1, so we usually don't need to write the number.");
+            return askSubstituents(askCarbonCount);
+        }
+
+        addMessage(`Select <b>${state.groupCount}</b> position(s) for ${state.group.name}:`);
+        let min = 1, max = state.carbonCount;
+        if (state.group.name === "Ketone" && state.structureType === "Straight Chain") { min = 2; max = state.carbonCount-1; }
+
+        showChainVisualizer(state.carbonCount, state.groupCount, (selection) => {
+            const locs = Array.isArray(selection) ? selection : [selection];
+            locs.sort((a,b)=>a-b);
+            state.groupLocants = locs;
+            addMessage(`Positions: ${locs.join(",")}`, true);
+            
+            addTeacherHint(`<b>Numbering Rule:</b> We number the chain to give the functional group the lowest possible numbers. Here: <b>${locs.join(",")}</b>.`);
+            
+            askSubstituents(() => askGroupLocant()); 
+        }, askCarbonCount, min, max);
+    }
+
+    function askSubstituents(backFromHub) {
+        addMessage("Add branches?");
+        createButtons(["Add Substituent", "Finish"], (choice) => {
+            if (choice === "Finish") {
+                addMessage("Finish", true);
+                finalizeName();
+            } else {
+                addMessage("Add Substituent", true);
+                askSubType(() => askSubstituents(backFromHub));
+            }
+        }, () => { state.substituents=[]; if(backFromHub) backFromHub(); });
+    }
+
+    function askSubType(backFn) {
+        addMessage("Type:");
+        createButtons(substituentsList, (choice) => {
+            addMessage(choice, true);
+            askSubPos(choice, backFn);
+        }, backFn);
+    }
+
+    function askSubPos(name, backFn) {
+        addMessage(`Position of <b>${name}</b>?`);
+        showChainVisualizer(state.carbonCount, 1, (pos) => {
+            addMessage(`At ${pos}`, true);
+            state.substituents.push({name: name, locant: pos});
+            
+            addTeacherHint(`<b>Alphabetical Order:</b> Substituents are listed alphabetically. <b>${name}</b> will be placed in the prefix section.`);
+            
+            askSubstituents(askStructureType); 
+        }, backFn);
+    }
+
+    // --- Naming Logic (Stable V13.4 Logic) ---
+    function constructName(isPartial = false) {
+        let root = roots[state.carbonCount - 1];
+        let parentPrefix = "";
+        
+        if(state.structureType === "Benzene Ring") root = "benzene";
+        else if(state.structureType.includes("Ring")) parentPrefix = "cyclo";
+
+        let prefixes = isPartial ? "" : buildPrefixString();
+        if(prefixes.endsWith("-")) prefixes = prefixes.slice(0, -1);
+
+        // Alkane Fix from V13.4
+        if (state.group.name === "Alkane") {
+            let base = parentPrefix + root + "ane";
+            return prefixes + base;
+        }
+
+        let multiplier = "";
+        if(state.groupCount === 2) multiplier = "di";
+        if(state.groupCount === 3) multiplier = "tri";
+
+        let useCyclicSuffix = (state.structureType === "Cyclic Ring") && (state.group.cyclicSuffix !== state.group.suffix);
+        let rawSuffix = useCyclicSuffix ? state.group.cyclicSuffix : state.group.suffix;
+        let fullSuffix = multiplier + rawSuffix; 
+
+        let bond = "an";
+        if (state.group.name === "Alkene") bond = "en";
+        if (state.structureType === "Benzene Ring") bond = "";
+
+        // Benzene Specials
+        if (state.structureType === "Benzene Ring" && state.groupCount === 1) {
+            const specials = {"Carboxylic Acid":"benzoic acid", "Alcohol":"phenol", "Amine":"aniline", "Aldehyde":"benzaldehyde"};
+            if (specials[state.group.name]) return buildBenzeneSpecial(specials[state.group.name], isPartial);
+        }
+
+        // Ester
+        if (state.group.name === "Ester") {
+            let acidPart = parentPrefix + root + "an";
+            let alkylPart = roots[state.esterAlkylCount - 1] + "yl";
+            let p = isPartial ? "" : buildPrefixString();
+            if(p.endsWith("-")) p = p.slice(0, -1);
+            return `${alkylPart} ${p}${acidPart}${rawSuffix}`.trim();
+        }
+
+        let parentName = "";
+        if (state.group.name === "Alkene") {
+            parentName = (state.groupCount > 1) ? parentPrefix + root + "a" : parentPrefix + root;
+        } else {
+             let bondWithE = bond + "e"; 
+             let isVowel = ['a','e','i','o','u','y'].includes(fullSuffix.charAt(0).toLowerCase());
+             parentName = isVowel ? parentPrefix + root + bond : parentPrefix + root + bondWithE; 
+        }
+
+        let suffixWithLocants = "";
+        let skipLocant = (state.structureType === "Straight Chain" && state.group.type === "terminal");
+        
+        if (skipLocant) suffixWithLocants = fullSuffix;
+        else suffixWithLocants = `-${state.groupLocants.join(",")}-${fullSuffix}`;
+
+        let base = parentName + suffixWithLocants;
+        base = base.replace("--", "-").replace(/^-/, "");
+
+        return prefixes + base;
+    }
+
+    function buildBenzeneSpecial(specialRoot, isPartial) {
+        if(isPartial) return specialRoot;
+        let prefix = buildPrefixString();
+        if (prefix.endsWith("-")) prefix = prefix.slice(0, -1);
+        return prefix + specialRoot;
+    }
+
+    function buildPrefixString() {
+        if(state.substituents.length === 0) return "";
+        state.substituents.sort((a,b) => a.name.localeCompare(b.name));
+        let groups = {};
+        state.substituents.forEach(s => {
+            if(!groups[s.name]) groups[s.name] = [];
+            groups[s.name].push(s.locant);
+        });
+        let str = "";
+        const mults = ["", "di", "tri", "tetra", "penta"];
+        Object.keys(groups).sort().forEach(k => {
+            let locs = groups[k].sort((a,b)=>a-b).join(",");
+            let m = groups[k].length > 1 ? mults[groups[k].length-1] : "";
+            str += `${locs}-${m}${k.toLowerCase()}-`;
+        });
+        return str;
+    }
+
+    async function finalizeName() {
+        clearControls();
+        toggleInputArea(false); 
+
+        const generatedName = constructName();
+        addMessage("Verifying name with PubChem...", false);
+
+        let finalDisplayName = generatedName;
+        let badge = `<span class="status-badge status-theoretical">⚠️ Theoretical / Not Found</span>`;
+        let link = "";
+        let meta = "Generated via internal rules";
+        
+        try {
+            const resp = await fetch(`https://pubchem.ncbi.nlm.nih.gov/rest/pug/compound/name/${encodeURIComponent(generatedName)}/cids/JSON`);
+            if (resp.ok) {
+                const data = await resp.json();
+                if (data.IdentifierList && data.IdentifierList.CID) {
+                    const cid = data.IdentifierList.CID[0];
+                    badge = `<span class="status-badge status-verified">✅ PubChem Verified</span>`;
+                    link = `<div style="margin-top:8px"><a href="https://pubchem.ncbi.nlm.nih.gov/compound/${cid}" target="_blank" style="color:var(--primary); text-decoration:none; font-weight:bold; font-size:0.9rem">View on PubChem &rarr;</a></div>`;
+                    
+                    const propResp = await fetch(`https://pubchem.ncbi.nlm.nih.gov/rest/pug/compound/cid/${cid}/property/IUPACName/JSON`);
+                    if(propResp.ok) {
+                        const propData = await propResp.json();
+                        if(propData.PropertyTable && propData.PropertyTable.Properties) {
+                            const officialName = propData.PropertyTable.Properties[0].IUPACName;
+                            if (officialName) {
+                                finalDisplayName = officialName;
+                                meta = `Official Verified Name (Generated was: ${generatedName})`;
+                            }
+                        }
+                    }
+                }
+            }
+        } catch (e) {
+            console.log("PubChem error", e);
+        }
+
+        const imgUrl = `https://opsin.ch.cam.ac.uk/opsin/${encodeURIComponent(finalDisplayName)}.png`;
+
+        addMessage(`
+            <div class="result-card">
+                ${badge}
+                <div class="result-name">${finalDisplayName}</div>
+                <div class="meta-info">${meta}</div>
+                <img src="${imgUrl}" class="structure-img" onerror="this.style.display='none'">
+                ${link}
+            </div>
+            <button class="primary-btn" onclick="startApp(false)" style="margin-top:20px">Name Another</button>
+        `);
+    }
+
+    // Initialize
+    startApp(true);
+</script>
+</body>
+</html>
