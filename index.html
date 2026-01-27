@@ -120,7 +120,7 @@
         { name: "-C-C-", suffix: "ane", cyclicSuffix: "ane", priority: 1, type: "none", allowMulti: false }
     ];
 
-    const substituentsList = ["Methyl", "Ethyl", "Propyl", "isopropyl", "butyl", "phenyl", "Chloro", "Bromo", "Iodo", "Nitro", "Hydroxy", "Amino"];
+    const substituentsList = ["Methyl", "Ethyl", "Propyl", "isopropyl", "butyl", "phenyl", "cyclopropyl", "cyclobutyl", "benzyl", "Chloro", "Bromo", "Iodo", "Nitro", "Hydroxy", "Amino"];
 
     let state = { structureType: null, carbonCount: 0, group: null, groupCount: 1, groupLocants: [], esterAlkylCount: 0, substituents: [] };
 
@@ -486,7 +486,7 @@
             if (specials[state.group.name]) return buildBenzeneSpecial(specials[state.group.name], isPartial);
         }
 
-        if (state.group.name === "Ester") {
+        if (state.group.name === "-COOR carboalkoxy") {
             let acidPart = parentPrefix + root + "an";
             let alkylPart = roots[state.esterAlkylCount - 1] + "yl";
             let p = isPartial ? "" : buildPrefixString();
