@@ -1,0 +1,322 @@
+<!doctype html>
+<html lang="en" class="h-full">
+ <head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Organic Chemistry Module</title>
+  <script src="https://cdn.tailwindcss.com"></script>
+  <link href="https://fonts.googleapis.com/css2?family=Outfit:wght@300;400;500;600;700;800&amp;display=swap" rel="stylesheet">
+  <script src="/_sdk/element_sdk.js"></script>
+  <style>
+    body {
+      box-sizing: border-box;
+      font-family: 'Outfit', sans-serif;
+    }
+    
+    .molecule-bg {
+      background-image: 
+        radial-gradient(circle at 20% 30%, rgba(124, 58, 237, 0.1) 0%, transparent 50%),
+        radial-gradient(circle at 80% 70%, rgba(16, 185, 129, 0.1) 0%, transparent 50%),
+        radial-gradient(circle at 50% 50%, rgba(245, 158, 11, 0.05) 0%, transparent 70%);
+    }
+    
+    .card-hover {
+      transition: all 0.4s cubic-bezier(0.175, 0.885, 0.32, 1.275);
+    }
+    
+    .card-hover:hover {
+      transform: translateY(-12px) scale(1.02);
+    }
+    
+    .float-animation {
+      animation: float 6s ease-in-out infinite;
+    }
+    
+    .float-animation-delayed {
+      animation: float 6s ease-in-out infinite 2s;
+    }
+    
+    .float-animation-delayed-2 {
+      animation: float 6s ease-in-out infinite 4s;
+    }
+    
+    @keyframes float {
+      0%, 100% { transform: translateY(0px) rotate(0deg); }
+      50% { transform: translateY(-20px) rotate(5deg); }
+    }
+    
+    @keyframes pulse-glow {
+      0%, 100% { box-shadow: 0 0 20px rgba(124, 58, 237, 0.3); }
+      50% { box-shadow: 0 0 40px rgba(124, 58, 237, 0.6); }
+    }
+    
+    .glow-effect {
+      animation: pulse-glow 3s ease-in-out infinite;
+    }
+    
+    .gradient-text {
+      background: linear-gradient(135deg, #7c3aed 0%, #10b981 50%, #f59e0b 100%);
+      -webkit-background-clip: text;
+      -webkit-text-fill-color: transparent;
+      background-clip: text;
+    }
+    
+    .hexagon {
+      clip-path: polygon(50% 0%, 100% 25%, 100% 75%, 50% 100%, 0% 75%, 0% 25%);
+    }
+    
+    .bond-line {
+      height: 3px;
+      background: linear-gradient(90deg, transparent, currentColor, transparent);
+    }
+  </style>
+  <style>@view-transition { navigation: auto; }</style>
+  <script src="/_sdk/data_sdk.js" type="text/javascript"></script>
+ </head>
+ <body class="h-full">
+  <div id="app-wrapper" class="h-full w-full overflow-auto molecule-bg" style="background-color: #0f0a1f;"><!-- Floating Molecules Decoration -->
+   <div class="fixed inset-0 pointer-events-none overflow-hidden">
+    <div class="absolute top-20 left-10 float-animation opacity-20">
+     <svg width="80" height="80" viewbox="0 0 80 80"><circle cx="20" cy="40" r="8" fill="#7c3aed" /> <circle cx="60" cy="40" r="8" fill="#10b981" /> <line x1="28" y1="40" x2="52" y2="40" stroke="#fff" stroke-width="3" />
+     </svg>
+    </div>
+    <div class="absolute top-40 right-20 float-animation-delayed opacity-20">
+     <svg width="100" height="100" viewbox="0 0 100 100"><circle cx="50" cy="20" r="10" fill="#f59e0b" /> <circle cx="20" cy="70" r="10" fill="#7c3aed" /> <circle cx="80" cy="70" r="10" fill="#10b981" /> <line x1="50" y1="30" x2="25" y2="62" stroke="#fff" stroke-width="2" /> <line x1="50" y1="30" x2="75" y2="62" stroke="#fff" stroke-width="2" />
+     </svg>
+    </div>
+    <div class="absolute bottom-40 left-1/4 float-animation-delayed-2 opacity-15">
+     <svg width="120" height="60" viewbox="0 0 120 60"><circle cx="20" cy="30" r="12" fill="#ec4899" /> <circle cx="60" cy="30" r="12" fill="#3b82f6" /> <circle cx="100" cy="30" r="12" fill="#10b981" /> <line x1="32" y1="30" x2="48" y2="30" stroke="#fff" stroke-width="3" /> <line x1="72" y1="30" x2="88" y2="30" stroke="#fff" stroke-width="3" />
+     </svg>
+    </div>
+   </div><!-- Header Section -->
+   <header class="relative z-10 pt-12 pb-8 px-6 text-center">
+    <div class="max-w-4xl mx-auto">
+     <div class="inline-flex items-center gap-2 px-4 py-2 rounded-full mb-6" style="background: rgba(124, 58, 237, 0.2); border: 1px solid rgba(124, 58, 237, 0.3);"><span class="text-2xl">⚗️</span> <span class="text-purple-300 text-sm font-medium tracking-wide">INTERACTIVE LEARNING MODULE</span>
+     </div>
+     <h1 id="main-title" class="text-5xl md:text-7xl font-extrabold mb-4 gradient-text leading-tight">Organic Chemistry</h1>
+     <p id="subtitle" class="text-xl md:text-2xl text-purple-200 font-light mb-6">Master the fundamentals of carbon-based compounds</p>
+     <p id="welcome-message" class="text-gray-400 max-w-2xl mx-auto text-lg">Welcome to your interactive journey through organic chemistry! Explore naming conventions, reactions, preparations, and chemical tests through engaging lessons.</p><!-- Benzene Ring Animation -->
+     <div class="mt-8 flex justify-center">
+      <div class="relative w-32 h-32 glow-effect rounded-full flex items-center justify-center" style="background: rgba(124, 58, 237, 0.1);">
+       <svg width="80" height="80" viewbox="0 0 100 100" class="animate-spin" style="animation-duration: 20s;"><polygon points="50,10 90,30 90,70 50,90 10,70 10,30" fill="none" stroke="#7c3aed" stroke-width="3" /> <circle cx="50" cy="50" r="25" fill="none" stroke="#10b981" stroke-width="2" stroke-dasharray="5,5" />
+       </svg>
+      </div>
+     </div>
+    </div>
+   </header><!-- Main Content - Module Cards -->
+   <main class="relative z-10 px-6 py-12">
+    <div class="max-w-6xl mx-auto"><!-- Section Title -->
+     <div class="text-center mb-12">
+      <h2 class="text-3xl font-bold text-white mb-2">Choose Your Topic</h2>
+      <div class="w-24 h-1 mx-auto rounded-full" style="background: linear-gradient(90deg, #7c3aed, #10b981);"></div>
+     </div><!-- Cards Grid -->
+     <div class="grid grid-cols-1 md:grid-cols-2 gap-8"><!-- Card 1: Naming Compounds --> <a href="PLACEHOLDER_NAMING_COMPOUND_URL" target="_blank" rel="noopener noreferrer" class="card-hover block rounded-3xl p-1" style="background: linear-gradient(135deg, #7c3aed, #a855f7);">
+       <div class="h-full rounded-3xl p-8" style="background: linear-gradient(135deg, #1a1035 0%, #0f0a1f 100%);">
+        <div class="flex items-start justify-between mb-6">
+         <div class="w-16 h-16 rounded-2xl flex items-center justify-center text-3xl" style="background: rgba(124, 58, 237, 0.3);">
+          🏷️
+         </div><span class="px-3 py-1 rounded-full text-xs font-semibold text-purple-300" style="background: rgba(124, 58, 237, 0.2);"> MODULE 1 </span>
+        </div>
+        <h3 class="text-2xl font-bold text-white mb-3">Naming Compounds</h3>
+        <p class="text-gray-400 mb-6">Master IUPAC nomenclature and learn to name alkanes, alkenes, alkynes, and functional groups systematically.</p>
+        <div class="flex items-center gap-4 text-sm"><span class="flex items-center gap-1 text-purple-300">
+          <svg class="w-4 h-4" fill="currentColor" viewbox="0 0 20 20">
+           <path d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z" />
+          </svg> Interactive exercises </span>
+        </div>
+        <div class="mt-6 flex items-center text-purple-400 font-medium">
+         Start Learning 
+         <svg class="w-5 h-5 ml-2 transition-transform group-hover:translate-x-2" fill="none" stroke="currentColor" viewbox="0 0 24 24">
+          <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M17 8l4 4m0 0l-4 4m4-4H3" />
+         </svg>
+        </div>
+       </div></a> <!-- Card 2: Chemical Reactions --> <a href="PLACEHOLDER_CHEMICAL_REACTIONS_URL" target="_blank" rel="noopener noreferrer" class="card-hover block rounded-3xl p-1" style="background: linear-gradient(135deg, #10b981, #34d399);">
+       <div class="h-full rounded-3xl p-8" style="background: linear-gradient(135deg, #0a1f1a 0%, #0f0a1f 100%);">
+        <div class="flex items-start justify-between mb-6">
+         <div class="w-16 h-16 rounded-2xl flex items-center justify-center text-3xl" style="background: rgba(16, 185, 129, 0.3);">
+          ⚡
+         </div><span class="px-3 py-1 rounded-full text-xs font-semibold text-emerald-300" style="background: rgba(16, 185, 129, 0.2);"> MODULE 2 </span>
+        </div>
+        <h3 class="text-2xl font-bold text-white mb-3">Chemical Reactions</h3>
+        <p class="text-gray-400 mb-6">Explore substitution, elimination, addition reactions and understand reaction mechanisms step by step.</p>
+        <div class="flex items-center gap-4 text-sm"><span class="flex items-center gap-1 text-emerald-300">
+          <svg class="w-4 h-4" fill="currentColor" viewbox="0 0 20 20">
+           <path d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z" />
+          </svg> Mechanism animations </span>
+        </div>
+        <div class="mt-6 flex items-center text-emerald-400 font-medium">
+         Start Learning 
+         <svg class="w-5 h-5 ml-2" fill="none" stroke="currentColor" viewbox="0 0 24 24">
+          <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M17 8l4 4m0 0l-4 4m4-4H3" />
+         </svg>
+        </div>
+       </div></a> <!-- Card 3: Preparations --> <a href="PLACEHOLDER_PREPARATIONS_URL" target="_blank" rel="noopener noreferrer" class="card-hover block rounded-3xl p-1" style="background: linear-gradient(135deg, #f59e0b, #fbbf24);">
+       <div class="h-full rounded-3xl p-8" style="background: linear-gradient(135deg, #1f1a0a 0%, #0f0a1f 100%);">
+        <div class="flex items-start justify-between mb-6">
+         <div class="w-16 h-16 rounded-2xl flex items-center justify-center text-3xl" style="background: rgba(245, 158, 11, 0.3);">
+          🧪
+         </div><span class="px-3 py-1 rounded-full text-xs font-semibold text-amber-300" style="background: rgba(245, 158, 11, 0.2);"> MODULE 3 </span>
+        </div>
+        <h3 class="text-2xl font-bold text-white mb-3">Preparations</h3>
+        <p class="text-gray-400 mb-6">Learn synthesis pathways for alcohols, aldehydes, ketones, carboxylic acids, and other organic compounds.</p>
+        <div class="flex items-center gap-4 text-sm"><span class="flex items-center gap-1 text-amber-300">
+          <svg class="w-4 h-4" fill="currentColor" viewbox="0 0 20 20">
+           <path d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z" />
+          </svg> Synthesis routes </span>
+        </div>
+        <div class="mt-6 flex items-center text-amber-400 font-medium">
+         Start Learning 
+         <svg class="w-5 h-5 ml-2" fill="none" stroke="currentColor" viewbox="0 0 24 24">
+          <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M17 8l4 4m0 0l-4 4m4-4H3" />
+         </svg>
+        </div>
+       </div></a> <!-- Card 4: Chemical Tests --> <a href="PLACEHOLDER_CHEMICAL_TESTS_URL" target="_blank" rel="noopener noreferrer" class="card-hover block rounded-3xl p-1" style="background: linear-gradient(135deg, #ec4899, #f472b6);">
+       <div class="h-full rounded-3xl p-8" style="background: linear-gradient(135deg, #1f0a1a 0%, #0f0a1f 100%);">
+        <div class="flex items-start justify-between mb-6">
+         <div class="w-16 h-16 rounded-2xl flex items-center justify-center text-3xl" style="background: rgba(236, 72, 153, 0.3);">
+          🔬
+         </div><span class="px-3 py-1 rounded-full text-xs font-semibold text-pink-300" style="background: rgba(236, 72, 153, 0.2);"> MODULE 4 </span>
+        </div>
+        <h3 class="text-2xl font-bold text-white mb-3">Chemical Tests</h3>
+        <p class="text-gray-400 mb-6">Identify functional groups using tests like Tollens', Fehling's, iodoform, and many more qualitative tests.</p>
+        <div class="flex items-center gap-4 text-sm"><span class="flex items-center gap-1 text-pink-300">
+          <svg class="w-4 h-4" fill="currentColor" viewbox="0 0 20 20">
+           <path d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z" />
+          </svg> Visual demonstrations </span>
+        </div>
+        <div class="mt-6 flex items-center text-pink-400 font-medium">
+         Start Learning 
+         <svg class="w-5 h-5 ml-2" fill="none" stroke="currentColor" viewbox="0 0 24 24">
+          <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M17 8l4 4m0 0l-4 4m4-4H3" />
+         </svg>
+        </div>
+       </div></a>
+     </div><!-- Quick Tips Section -->
+     <div class="mt-16 rounded-3xl p-8" style="background: linear-gradient(135deg, rgba(124, 58, 237, 0.1), rgba(16, 185, 129, 0.1)); border: 1px solid rgba(124, 58, 237, 0.2);">
+      <div class="text-center mb-8">
+       <h3 class="text-2xl font-bold text-white mb-2">💡 Quick Study Tips</h3>
+       <p class="text-gray-400">Get the most out of your learning experience</p>
+      </div>
+      <div class="grid grid-cols-1 md:grid-cols-3 gap-6">
+       <div class="text-center p-4">
+        <div class="w-12 h-12 rounded-full mx-auto mb-3 flex items-center justify-center text-2xl" style="background: rgba(124, 58, 237, 0.2);">
+         📝
+        </div>
+        <h4 class="text-white font-semibold mb-1">Practice Naming</h4>
+        <p class="text-gray-400 text-sm">Start with simple structures and gradually tackle complex molecules</p>
+       </div>
+       <div class="text-center p-4">
+        <div class="w-12 h-12 rounded-full mx-auto mb-3 flex items-center justify-center text-2xl" style="background: rgba(16, 185, 129, 0.2);">
+         🔄
+        </div>
+        <h4 class="text-white font-semibold mb-1">Learn Mechanisms</h4>
+        <p class="text-gray-400 text-sm">Understanding electron flow makes reactions predictable</p>
+       </div>
+       <div class="text-center p-4">
+        <div class="w-12 h-12 rounded-full mx-auto mb-3 flex items-center justify-center text-2xl" style="background: rgba(245, 158, 11, 0.2);">
+         🎯
+        </div>
+        <h4 class="text-white font-semibold mb-1">Connect Concepts</h4>
+        <p class="text-gray-400 text-sm">Link reactions to preparations and tests for deeper understanding</p>
+       </div>
+      </div>
+     </div>
+    </div>
+   </main><!-- Footer -->
+   <footer class="relative z-10 py-8 px-6 text-center border-t" style="border-color: rgba(124, 58, 237, 0.2);">
+    <p class="text-gray-500 text-sm">Made with 💜 for chemistry students everywhere</p>
+    <p class="text-gray-600 text-xs mt-2">© 2024 Organic Chemistry Module</p>
+   </footer>
+  </div>
+  <script>
+    const defaultConfig = {
+      main_title: 'Organic Chemistry',
+      subtitle: 'Master the fundamentals of carbon-based compounds',
+      welcome_message: 'Welcome to your interactive journey through organic chemistry! Explore naming conventions, reactions, preparations, and chemical tests through engaging lessons.',
+      primary_color: '#7c3aed',
+      secondary_color: '#10b981',
+      accent_color: '#f59e0b',
+      text_color: '#ffffff',
+      background_color: '#0f0a1f'
+    };
+
+    async function onConfigChange(config) {
+      const mainTitle = document.getElementById('main-title');
+      const subtitle = document.getElementById('subtitle');
+      const welcomeMessage = document.getElementById('welcome-message');
+
+      if (mainTitle) {
+        mainTitle.textContent = config.main_title || defaultConfig.main_title;
+      }
+      if (subtitle) {
+        subtitle.textContent = config.subtitle || defaultConfig.subtitle;
+      }
+      if (welcomeMessage) {
+        welcomeMessage.textContent = config.welcome_message || defaultConfig.welcome_message;
+      }
+    }
+
+    function mapToCapabilities(config) {
+      return {
+        recolorables: [
+          {
+            get: () => config.background_color || defaultConfig.background_color,
+            set: (value) => {
+              config.background_color = value;
+              window.elementSdk.setConfig({ background_color: value });
+            }
+          },
+          {
+            get: () => config.text_color || defaultConfig.text_color,
+            set: (value) => {
+              config.text_color = value;
+              window.elementSdk.setConfig({ text_color: value });
+            }
+          },
+          {
+            get: () => config.primary_color || defaultConfig.primary_color,
+            set: (value) => {
+              config.primary_color = value;
+              window.elementSdk.setConfig({ primary_color: value });
+            }
+          },
+          {
+            get: () => config.secondary_color || defaultConfig.secondary_color,
+            set: (value) => {
+              config.secondary_color = value;
+              window.elementSdk.setConfig({ secondary_color: value });
+            }
+          },
+          {
+            get: () => config.accent_color || defaultConfig.accent_color,
+            set: (value) => {
+              config.accent_color = value;
+              window.elementSdk.setConfig({ accent_color: value });
+            }
+          }
+        ],
+        borderables: [],
+        fontEditable: undefined,
+        fontSizeable: undefined
+      };
+    }
+
+    function mapToEditPanelValues(config) {
+      return new Map([
+        ['main_title', config.main_title || defaultConfig.main_title],
+        ['subtitle', config.subtitle || defaultConfig.subtitle],
+        ['welcome_message', config.welcome_message || defaultConfig.welcome_message]
+      ]);
+    }
+
+    if (window.elementSdk) {
+      window.elementSdk.init({
+        defaultConfig,
+        onConfigChange,
+        mapToCapabilities,
+        mapToEditPanelValues
+      });
+    }
+  </script>
+ <script>(function(){function c(){var b=a.contentDocument||a.contentWindow.document;if(b){var d=b.createElement('script');d.innerHTML="window.__CF$cv$params={r:'9c4644ae87ad0d0a',t:'MTc2OTQ5NjEyOC4wMDAwMDA='};var a=document.createElement('script');a.nonce='';a.src='/cdn-cgi/challenge-platform/scripts/jsd/main.js';document.getElementsByTagName('head')[0].appendChild(a);";b.getElementsByTagName('head')[0].appendChild(d)}}if(document.body){var a=document.createElement('iframe');a.height=1;a.width=1;a.style.position='absolute';a.style.top=0;a.style.left=0;a.style.border='none';a.style.visibility='hidden';document.body.appendChild(a);if('loading'!==document.readyState)c();else if(window.addEventListener)document.addEventListener('DOMContentLoaded',c);else{var e=document.onreadystatechange||function(){};document.onreadystatechange=function(b){e(b);'loading'!==document.readyState&&(document.onreadystatechange=e,c())}}}})();</script></body>
+</html>
