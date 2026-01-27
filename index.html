@@ -478,7 +478,7 @@
         let fullSuffix = multiplier + rawSuffix; 
 
         let bond = "an";
-        if (state.group.name === "Alkene") bond = "en";
+        if (state.group.name === "-C=C-") bond = "en";
         if (state.structureType === "Benzene Ring") bond = "";
 
         if (state.structureType === "Benzene Ring" && state.groupCount === 1) {
@@ -496,7 +496,7 @@
         }
 
         let parentName = "";
-        if (state.group.name === "Alkene") {
+        if (state.group.name === "-C=C-") {
             parentName = (state.groupCount > 1) ? parentPrefix + root + "a" : parentPrefix + root;
         } else {
              let bondWithE = bond + "e"; 
