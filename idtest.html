@@ -1,0 +1,362 @@
+<!DOCTYPE html>
+<html lang="en" class="h-full">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Chemical Tests: Identification Lab</title>
+  
+  <script src="https://cdn.tailwindcss.com"></script>
+  <link href="https://fonts.googleapis.com/css2?family=Space+Grotesk:wght@400;500;600;700&family=JetBrains+Mono:wght@400;500&display=swap" rel="stylesheet">
+  
+  <script crossorigin src="https://unpkg.com/react@18/umd/react.development.js"></script>
+  <script crossorigin src="https://unpkg.com/react-dom@18/umd/react-dom.development.js"></script>
+  <script src="https://unpkg.com/@babel/standalone/babel.min.js"></script>
+  
+  <script src="https://unpkg.com/smiles-drawer@2.0.1/dist/smiles-drawer.min.js"></script>
+
+  <style>
+    :root { --bg-dark: #0f172a; --bg-panel: #1e293b; --accent: #f59e0b; }
+    body { font-family: 'Space Grotesk', sans-serif; background-color: var(--bg-dark); color: white; }
+    .mono { font-family: 'JetBrains Mono', monospace; }
+    
+    .fade-in { animation: fadeIn 0.4s ease-out forwards; }
+    @keyframes fadeIn { from { opacity: 0; transform: translateY(10px); } to { opacity: 1; transform: translateY(0); } }
+
+    /* TEST TUBE ANIMATIONS */
+    .liquid { transition: background-color 1s ease, opacity 1s ease; }
+    .precipitate { transition: opacity 0.5s ease 0.5s; }
+    
+    /* REACTION ARROW */
+    .arrow-body { height: 2px; background: #94a3b8; width: 100%; position: relative; min-width: 50px; }
+    .arrow-head { position: absolute; right: 0; top: -5px; width: 0; height: 0; border-top: 6px solid transparent; border-bottom: 6px solid transparent; border-left: 10px solid #94a3b8; }
+  </style>
+</head>
+<body class="h-full flex flex-col overflow-hidden">
+
+  <nav class="bg-slate-900/90 backdrop-blur border-b border-slate-800 z-50">
+    <div class="max-w-7xl mx-auto px-6 py-4 flex items-center justify-between">
+      <div class="flex items-center gap-3">
+        <div class="w-10 h-10 rounded-xl bg-gradient-to-br from-amber-500 to-orange-500 flex items-center justify-center text-2xl shadow-lg shadow-amber-500/20">🧪</div>
+        <div>
+          <h1 class="font-bold text-lg leading-none">Chemical Identification Lab</h1>
+          <p class="text-[10px] text-slate-400 font-mono mt-1">QUALITATIVE ANALYSIS (SK025)</p>
+        </div>
+      </div>
+      <div class="hidden md:flex gap-4 text-xs font-mono text-slate-500">
+        <span class="flex items-center gap-2"><span class="w-2 h-2 rounded-full bg-green-500"></span> Positive Control</span>
+        <span class="flex items-center gap-2"><span class="w-2 h-2 rounded-full bg-slate-600"></span> Negative Control</span>
+      </div>
+    </div>
+  </nav>
+
+  <main id="root" class="flex-1 overflow-hidden relative"></main>
+
+  <script type="text/babel">
+    const { useState, useEffect, useRef, useMemo } = React;
+
+    // --- 1. OPSIN HOOK ---
+    const useOpsin = (iupacName) => {
+      const [smiles, setSmiles] = useState(null);
+      const CACHE = {
+        'Ethanol': 'CCO', 'Ethene': 'C=C', 'Propene': 'CC=C', 'Ethane': 'CC', 'Propane': 'CCC',
+        'Benzene': 'c1ccccc1', 'Phenol': 'Oc1ccccc1', 'Benzoic Acid': 'O=C(O)c1ccccc1',
+        'Ethanal': 'CC=O', 'Propanone': 'CC(=O)C', 'Benzaldehyde': 'O=Cc1ccccc1',
+        '2-Methylpropan-2-ol': 'CC(C)(O)C', 'Propan-2-ol': 'CC(O)C', '1,2-Dibromoethane': 'BrCCBr',
+        'Ethanoic Acid': 'CC(=O)O', 'Ethanoate': 'CC(=O)[O-]', 'Benzoate': 'O=C([O-])c1ccccc1',
+        'Triiodomethane': 'CI(I)I', '2,4,6-Tribromophenol': 'Oc1c(Br)cc(Br)cc1Br',
+        'Carbon Dioxide': 'O=C=O', 'Manganese Dioxide': 'O=[Mn]=O', 'Silver': '[Ag]',
+        'Ethanedioic acid': 'OC(=O)C(=O)O', 'Ethane-1,2-diol': 'OCCO'
+      };
+
+      useEffect(() => {
+        if (!iupacName) return;
+        if (CACHE[iupacName]) { setSmiles(CACHE[iupacName]); return; }
+        fetch(`https://opsin.ch.cam.ac.uk/opsin/${iupacName}.json`)
+          .then(r => r.ok ? r.json() : null)
+          .then(d => d && setSmiles(d.smiles))
+          .catch(() => setSmiles(null));
+      }, [iupacName]);
+      return smiles;
+    };
+
+    // --- 2. MOLECULE CANVAS ---
+    const MoleculeCanvas = ({ iupac, label, small = false }) => {
+      const smiles = useOpsin(iupac);
+      const canvasRef = useRef(null);
+
+      useEffect(() => {
+        if (smiles && window.SmilesDrawer && canvasRef.current) {
+          const drawer = new window.SmilesDrawer.Drawer({ 
+            width: small ? 120 : 180, height: small ? 80 : 120, 
+            bondThickness: 1.0, backgroundColor: 'transparent', drawingType: 'dark' 
+          });
+          window.SmilesDrawer.parse(smiles, (tree) => drawer.draw(tree, canvasRef.current, 'light', false));
+        }
+      }, [smiles]);
+
+      return (
+        <div className={`flex flex-col items-center justify-center p-2 rounded-xl border relative ${small ? 'bg-transparent border-none' : 'bg-slate-800/50 border-slate-700 w-full'}`}>
+          {!small && <span className="absolute top-2 left-3 text-[10px] font-bold tracking-widest text-slate-500 uppercase">{label}</span>}
+          {smiles ? <canvas ref={canvasRef} width={small?120:180} height={small?80:120} className="filter invert opacity-90"></canvas> 
+                  : <div className="h-20 flex items-center text-xs text-slate-600">Structure N/A</div>}
+          <div className="mt-1 px-2 py-0.5 rounded text-[10px] font-mono text-slate-400 bg-slate-900 border border-slate-800">{iupac}</div>
+        </div>
+      );
+    };
+
+    // --- 3. TEST DATABASE ---
+    const TESTS_DB = [
+      {
+        id: 'unsat_br2', name: 'Unsaturation: Bromine Test',
+        reagent: 'Br₂', cat: 'CH₂Cl₂', cond: 'Dark, RT',
+        target: 'Alkenes',
+        positive: { obs: 'Brown colour decolourises', colorClass: 'bg-transparent', ppt: false },
+        negative: { obs: 'Brown colour remains', colorClass: 'bg-amber-700/60', ppt: false },
+        pairs: [
+          { a: 'Ethene', b: 'Ethane' },
+          { a: 'Propene', b: 'Propane' }
+        ],
+        equation: (r) => ({ product: r==='Ethene'?'1,2-Dibromoethane':'1,2-Dibromopropane', side: '' })
+      },
+      {
+        id: 'unsat_baeyer', name: 'Unsaturation: Baeyer\'s Test',
+        reagent: 'KMnO₄', cat: 'OH⁻ (aq)', cond: 'Cold',
+        target: 'Alkenes',
+        positive: { obs: 'Purple decolourises, Brown ppt', colorClass: 'bg-amber-900/20', ppt: 'bg-amber-900' },
+        negative: { obs: 'Purple colour remains', colorClass: 'bg-fuchsia-700/60', ppt: false },
+        pairs: [
+          { a: 'Ethene', b: 'Ethane' }
+        ],
+        equation: (r) => ({ product: 'Ethane-1,2-diol', side: '+ MnO₂' })
+      },
+      {
+        id: 'lucas', name: 'Lucas Test (Alcohol Class)',
+        reagent: 'Conc. HCl', cat: 'ZnCl₂', cond: 'Room Temp',
+        target: '3° > 2° Alcohols',
+        positive: { obs: 'Cloudy solution (Turbidity)', colorClass: 'bg-slate-200/90', ppt: false },
+        negative: { obs: 'Solution remains clear', colorClass: 'bg-transparent', ppt: false },
+        pairs: [
+          { a: '2-Methylpropan-2-ol', b: 'Ethanol' }, // 3° vs 1°
+          { a: 'Propan-2-ol', b: 'Ethanol' } // 2° vs 1°
+        ],
+        equation: (r) => ({ product: r.replace('ol', 'chloride').replace('an-2-ol','yl chloride'), side: '+ H₂O' })
+      },
+      {
+        id: 'tollens', name: 'Tollens\' Test (Silver Mirror)',
+        reagent: '[Ag(NH₃)₂]⁺', cat: 'OH⁻', cond: 'Warm',
+        target: 'Aldehydes',
+        positive: { obs: 'Silver mirror forms', colorClass: 'bg-gradient-to-b from-slate-300 via-white to-slate-400', ppt: false },
+        negative: { obs: 'No change', colorClass: 'bg-transparent', ppt: false },
+        pairs: [
+          { a: 'Ethanal', b: 'Propanone' },
+          { a: 'Benzaldehyde', b: 'Propanone' }
+        ],
+        equation: (r) => ({ product: r==='Ethanal'?'Ethanoate':'Benzoate', side: '+ Ag(s)' })
+      },
+      {
+        id: 'fehling', name: 'Fehling\'s Test',
+        reagent: 'Cu²⁺ complex', cat: 'OH⁻', cond: 'Heat',
+        target: 'Aliphatic Aldehydes',
+        positive: { obs: 'Brick-red precipitate', colorClass: 'bg-red-500/10', ppt: 'bg-red-600' },
+        negative: { obs: 'Blue solution remains', colorClass: 'bg-blue-600/60', ppt: false },
+        pairs: [
+          { a: 'Ethanal', b: 'Benzaldehyde' }, // Aliphatic vs Aromatic
+          { a: 'Ethanal', b: 'Propanone' }
+        ],
+        equation: (r) => ({ product: 'Ethanoate', side: '+ Cu₂O(s)' })
+      },
+      {
+        id: 'iodoform', name: 'Iodoform Test',
+        reagent: 'I₂', cat: 'NaOH', cond: 'Warm',
+        target: 'Methyl Carbonyl / Methyl Carbinol',
+        positive: { obs: 'Yellow precipitate', colorClass: 'bg-yellow-200/10', ppt: 'bg-yellow-400' },
+        negative: { obs: 'No precipitate', colorClass: 'bg-amber-900/10', ppt: false },
+        pairs: [
+          { a: 'Propanone', b: 'Pentan-3-one' },
+          { a: 'Ethanol', b: 'Methanol' },
+          { a: 'Propan-2-ol', b: 'Propan-1-ol' }
+        ],
+        equation: (r) => ({ product: 'Ethanoate', side: '+ CHI₃' })
+      },
+      {
+        id: 'ferric', name: 'Ferric Chloride Test',
+        reagent: 'FeCl₃ (aq)', cat: '-', cond: 'RT',
+        target: 'Phenols',
+        positive: { obs: 'Purple complex formed', colorClass: 'bg-purple-900/80', ppt: false },
+        negative: { obs: 'Yellow solution', colorClass: 'bg-yellow-500/30', ppt: false },
+        pairs: [
+          { a: 'Phenol', b: 'Ethanol' }
+        ],
+        equation: (r) => ({ product: 'Purple Complex', side: '+ HCl' })
+      }
+    ];
+
+    // --- 4. MAIN COMPONENT ---
+    const ChemicalTestLab = () => {
+      const [testIdx, setTestIdx] = useState(0);
+      const [pairIdx, setPairIdx] = useState(0);
+      const [runTest, setRunTest] = useState(false);
+
+      const currentTest = TESTS_DB[testIdx];
+      const currentPair = currentTest.pairs[pairIdx];
+
+      // Logic to determine which is positive/negative
+      // For this app's simplicity, 'a' in pair is always the Positive case in DB, 'b' is Negative
+      // In a real app we'd calculate this dynamically.
+      const positiveComp = currentPair.a;
+      const negativeComp = currentPair.b;
+
+      const reset = () => { setRunTest(false); };
+      const handleTestChange = (e) => { setTestIdx(parseInt(e.target.value)); setPairIdx(0); reset(); };
+      const handlePairChange = (e) => { setPairIdx(parseInt(e.target.value)); reset(); };
+
+      // Calculate Equation Details for Positive Result
+      const eqDetails = currentTest.equation(positiveComp);
+
+      return (
+        <div className="flex flex-col h-full bg-slate-950">
+          
+          {/* CONTROL PANEL */}
+          <div className="p-4 bg-slate-900 border-b border-slate-800 flex flex-col md:flex-row gap-4 items-end z-10">
+            <div className="w-full md:w-1/3">
+              <label className="block text-[10px] font-bold text-amber-500 uppercase mb-2 tracking-widest">Select Chemical Test:</label>
+              <select value={testIdx} onChange={handleTestChange} className="w-full p-3 bg-slate-800 border border-slate-700 rounded-lg text-white font-bold text-sm focus:ring-2 focus:ring-amber-500">
+                {TESTS_DB.map((t, i) => <option key={t.id} value={i}>{t.name}</option>)}
+              </select>
+            </div>
+            
+            <div className="w-full md:w-1/3">
+              <label className="block text-[10px] font-bold text-slate-400 uppercase mb-2 tracking-widest">Compare Compounds:</label>
+              <select value={pairIdx} onChange={handlePairChange} className="w-full p-3 bg-slate-800 border border-slate-700 rounded-lg text-slate-300 text-sm focus:ring-2 focus:ring-amber-500">
+                {currentTest.pairs.map((p, i) => <option key={i} value={i}>{p.a} vs {p.b}</option>)}
+              </select>
+            </div>
+
+            <div className="w-full md:w-1/3">
+              <button 
+                onClick={() => setRunTest(true)}
+                disabled={runTest}
+                className={`w-full p-3 rounded-lg font-bold text-sm transition-all ${runTest ? 'bg-slate-700 text-slate-500 cursor-not-allowed' : 'bg-amber-600 hover:bg-amber-500 text-white shadow-lg shadow-amber-900/50'}`}
+              >
+                {runTest ? 'Test Complete' : '▶ ADD REAGENT'}
+              </button>
+            </div>
+          </div>
+
+          {/* LAB BENCH */}
+          <div className="flex-1 overflow-y-auto p-4 md:p-8 relative">
+            <div className="absolute inset-0 opacity-5 pointer-events-none" style={{backgroundImage: 'radial-gradient(#94a3b8 1px, transparent 1px)', backgroundSize: '24px 24px'}}></div>
+            
+            <div className="max-w-6xl mx-auto grid grid-cols-1 lg:grid-cols-2 gap-8">
+              
+              {/* TEST TUBE A (POSITIVE) */}
+              <TestTubeView 
+                compound={positiveComp} 
+                result={currentTest.positive} 
+                isRunning={runTest} 
+                label="Sample A (Positive)" 
+                isPositive={true}
+                eqDetails={eqDetails}
+                reagent={currentTest.reagent}
+                cat={currentTest.cat}
+                cond={currentTest.cond}
+              />
+
+              {/* TEST TUBE B (NEGATIVE) */}
+              <TestTubeView 
+                compound={negativeComp} 
+                result={currentTest.negative} 
+                isRunning={runTest} 
+                label="Sample B (Negative)" 
+                isPositive={false}
+              />
+
+            </div>
+          </div>
+        </div>
+      );
+    };
+
+    // --- 5. TEST TUBE COMPONENT ---
+    const TestTubeView = ({ compound, result, isRunning, label, isPositive, eqDetails, reagent, cat, cond }) => {
+      
+      return (
+        <div className="bg-slate-900/80 border border-slate-800 rounded-2xl p-6 backdrop-blur flex flex-col items-center">
+           
+           <h3 className={`text-sm font-bold uppercase tracking-widest mb-6 ${isPositive ? 'text-green-400' : 'text-slate-500'}`}>{label}</h3>
+           
+           <div className="flex flex-col md:flex-row items-center gap-8 w-full justify-center min-h-[220px]">
+              
+              {/* MOLECULE */}
+              <div className="w-40 h-32 shrink-0">
+                 <MoleculeCanvas iupac={compound} label={compound} small={true} />
+              </div>
+
+              {/* TEST TUBE GRAPHIC */}
+              <div className="relative w-16 h-48 bg-slate-800 rounded-b-full border-x-2 border-b-2 border-slate-600 overflow-hidden shadow-inner">
+                  {/* Liquid Fill */}
+                  <div className={`absolute bottom-0 left-0 right-0 transition-all duration-1000 ease-in-out ${isRunning ? 'h-32' : 'h-10'} ${isRunning ? result.colorClass : 'bg-transparent'}`}></div>
+                  
+                  {/* Precipitate */}
+                  {isRunning && result.ppt && (
+                    <div className={`absolute bottom-0 left-0 right-0 h-8 ${result.ppt} opacity-0 animate-[fadeIn_0.5s_ease-in_1s_forwards]`}></div>
+                  )}
+
+                  {/* Bubbles if gas */}
+                  {isRunning && isPositive && reagent.includes('Na') && (
+                     <div className="absolute bottom-4 left-4 w-2 h-2 bg-white rounded-full animate-ping"></div>
+                  )}
+              </div>
+
+              {/* OBSERVATION TEXT */}
+              <div className="w-40 text-center">
+                 {isRunning ? (
+                   <div className="fade-in">
+                      <div className={`text-xs font-bold mb-1 ${isPositive ? 'text-green-400' : 'text-slate-400'}`}>Observation:</div>
+                      <div className="text-sm text-white font-medium">{result.obs}</div>
+                   </div>
+                 ) : (
+                   <div className="text-xs text-slate-600 italic">Waiting for reagent...</div>
+                 )}
+              </div>
+           </div>
+
+           {/* EQUATION BOX (Only for Positive) */}
+           {isPositive && isRunning && eqDetails && (
+             <div className="mt-6 w-full bg-slate-950 p-4 rounded-xl border border-slate-800 fade-in relative overflow-hidden">
+                <div className="absolute top-0 left-0 w-1 h-full bg-green-500"></div>
+                <div className="text-[10px] text-slate-500 font-bold uppercase mb-3 ml-2">Reaction Equation</div>
+                
+                <div className="flex flex-col xl:flex-row items-center justify-center gap-2">
+                   {/* Reactant */}
+                   <div className="text-sm font-bold text-slate-300">{compound}</div>
+                   <div className="text-slate-500">+</div>
+                   {/* Reagent */}
+                   <div className="text-sm font-bold text-amber-400">{reagent}</div>
+                   
+                   {/* Arrow */}
+                   <div className="flex flex-col items-center w-24 mx-2">
+                      <div className="text-[10px] text-slate-400">{cat}</div>
+                      <div className="arrow-body"><div className="arrow-head"></div></div>
+                      <div className="text-[10px] text-slate-500">{cond}</div>
+                   </div>
+
+                   {/* Product */}
+                   <div className="flex flex-col items-center">
+                      <div className="text-sm font-bold text-green-400">{eqDetails.product}</div>
+                   </div>
+                   {/* Side */}
+                   {eqDetails.side && <div className="text-xs text-slate-500 ml-1">{eqDetails.side}</div>}
+                </div>
+             </div>
+           )}
+
+        </div>
+      );
+    };
+
+    const root = ReactDOM.createRoot(document.getElementById('root'));
+    root.render(<ChemicalTestLab />);
+  </script>
+</body>
+</html>
