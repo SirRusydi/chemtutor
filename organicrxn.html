@@ -1,0 +1,528 @@
+<!DOCTYPE html>
+<html lang="en" class="h-full">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Organic Chemistry Explorer: Full Syllabus</title>
+  
+  <script src="https://cdn.tailwindcss.com"></script>
+  <link href="https://fonts.googleapis.com/css2?family=Space+Grotesk:wght@400;500;600;700&family=JetBrains+Mono:wght@400;500&display=swap" rel="stylesheet">
+  
+  <script crossorigin src="https://unpkg.com/react@18/umd/react.development.js"></script>
+  <script crossorigin src="https://unpkg.com/react-dom@18/umd/react-dom.development.js"></script>
+  <script src="https://unpkg.com/@babel/standalone/babel.min.js"></script>
+  
+  <script src="https://unpkg.com/smiles-drawer@2.0.1/dist/smiles-drawer.min.js"></script>
+
+  <style>
+    /* DESIGN SYSTEM */
+    :root { --bg-dark: #0f172a; --bg-card: #1e293b; --accent: #10b981; }
+    body { font-family: 'Space Grotesk', sans-serif; background-color: var(--bg-dark); color: white; }
+    .mono { font-family: 'JetBrains Mono', monospace; }
+    
+    /* ANIMATIONS */
+    .fade-in { animation: fadeIn 0.4s ease-out forwards; }
+    @keyframes fadeIn { from { opacity: 0; transform: translateY(10px); } to { opacity: 1; transform: translateY(0); } }
+    
+    /* SCROLLBAR */
+    ::-webkit-scrollbar { width: 8px; }
+    ::-webkit-scrollbar-track { background: #1e293b; }
+    ::-webkit-scrollbar-thumb { background: #475569; border-radius: 4px; }
+    
+    /* LOADER */
+    .loader { border: 2px solid rgba(255,255,255,0.1); border-top: 2px solid #10b981; border-radius: 50%; width: 24px; height: 24px; animation: spin 0.8s linear infinite; }
+    @keyframes spin { 0% { transform: rotate(0deg); } 100% { transform: rotate(360deg); } }
+
+    /* ARROW */
+    .arrow-body { height: 2px; background: #94a3b8; width: 100%; position: relative; min-width: 60px; }
+    .arrow-head { position: absolute; right: 0; top: -5px; width: 0; height: 0; border-top: 6px solid transparent; border-bottom: 6px solid transparent; border-left: 10px solid #94a3b8; }
+  </style>
+</head>
+<body class="h-full overflow-hidden flex flex-col">
+
+  <nav class="sticky top-0 z-50 bg-slate-900/95 backdrop-blur border-b border-slate-800 shrink-0">
+    <div class="max-w-7xl mx-auto px-4 py-3 flex items-center justify-between">
+      <div class="flex items-center gap-3">
+        <div class="w-10 h-10 rounded-xl bg-gradient-to-br from-emerald-500 to-cyan-500 flex items-center justify-center text-2xl shadow-lg shadow-emerald-500/20">⚗️</div>
+        <div>
+          <h1 class="font-bold text-lg text-white leading-tight">MyChemReactor <span class="text-emerald-400 text-xs align-top">PRO</span></h1>
+          <p class="text-[10px] text-slate-400 font-medium tracking-wider">FULL SYLLABUS EDITION</p>
+        </div>
+      </div>
+      <button onclick="router.navigate('home')" class="px-4 py-2 rounded-lg bg-slate-800 hover:bg-slate-700 text-slate-200 text-sm font-medium transition-all border border-slate-700">
+        Dashboard
+      </button>
+    </div>
+  </nav>
+
+  <main id="app-container" class="flex-1 overflow-y-auto relative scroll-smooth bg-slate-950">
+    
+    <div id="view-home" class="max-w-7xl mx-auto px-4 py-8 fade-in">
+      <div class="text-center mb-10">
+        <h2 class="text-3xl md:text-5xl font-bold mb-3 text-white">Select a Compound Class</h2>
+        <p class="text-slate-400">Choose a family of organic compounds to explore their reactions.</p>
+      </div>
+      <div id="categories-grid" class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-5 pb-10">
+        </div>
+    </div>
+
+    <div id="view-reaction" class="hidden absolute inset-0 bg-slate-950 z-20 flex flex-col">
+      <div class="p-3 border-b border-slate-800 bg-slate-900 flex justify-between items-center shrink-0">
+        <button onclick="router.navigate('home')" class="text-slate-400 hover:text-emerald-400 flex items-center gap-2 transition-colors text-sm font-medium px-2 py-1 rounded hover:bg-slate-800">
+          ← Back
+        </button>
+        <div id="reaction-header-title" class="font-bold text-base text-white truncate px-4">Reaction Name</div>
+        <div class="w-16"></div>
+      </div>
+      
+      <div class="flex-1 flex flex-col lg:flex-row overflow-hidden">
+        <div class="flex-1 bg-slate-950 relative overflow-y-auto border-r border-slate-800">
+           <div id="react-simulator-root" class="min-h-full flex flex-col"></div>
+        </div>
+        <div class="lg:w-[380px] bg-slate-900 overflow-y-auto border-l border-slate-800">
+          <div id="theory-content" class="p-6"></div>
+        </div>
+      </div>
+    </div>
+
+  </main>
+
+  <script type="text/babel">
+    const { useState, useEffect, useRef, useMemo } = React;
+
+    // 1. REAGENT DATABASE (Inorganic side of the equation)
+    const REAGENTS = {
+        // Alkanes
+        'combustion': { agent: 'O₂ (excess)', cat: 'Spark', cond: 'Heat' },
+        'radical_sub': { agent: 'Cl₂', cat: 'UV Light', cond: 'hv' },
+        // Alkenes
+        'hydrogenation': { agent: 'H₂', cat: 'Ni', cond: '180°C' },
+        'halogenation_inert': { agent: 'Br₂', cat: 'CH₂Cl₂', cond: 'Dark' },
+        'halohydrin': { agent: 'Br₂', cat: 'H₂O', cond: 'RT' },
+        'hydrohalogenation': { agent: 'HBr', cat: '', cond: 'Dry' },
+        'hydrohalogenation_peroxide': { agent: 'HBr', cat: 'ROOR', cond: 'Peroxide' },
+        'hydration': { agent: 'H₂O', cat: 'H₃PO₄', cond: '300°C' },
+        'ox_mild': { agent: 'KMnO₄', cat: 'OH⁻', cond: 'Cold' },
+        'ox_strong': { agent: 'KMnO₄', cat: 'H⁺', cond: 'Hot' },
+        // Benzene
+        'nitration': { agent: 'HNO₃', cat: 'H₂SO₄', cond: '55°C' },
+        'halogenation_lewis': { agent: 'Br₂', cat: 'FeBr₃', cond: 'Lewis Acid' },
+        'fc_alkylation': { agent: 'CH₃Cl', cat: 'AlCl₃', cond: 'Reflux' },
+        'fc_acylation': { agent: 'CH₃COCl', cat: 'AlCl₃', cond: 'Reflux' },
+        'side_chain_ox': { agent: 'KMnO₄', cat: 'H⁺', cond: 'Reflux' },
+        // Alcohols
+        'lucas': { agent: 'Conc. HCl', cat: 'ZnCl₂', cond: 'RT' },
+        'ox_alcohol_strong': { agent: 'K₂Cr₂O₇', cat: 'H⁺', cond: 'Reflux' },
+        'ox_alcohol_mild': { agent: 'PCC', cat: 'CH₂Cl₂', cond: 'Inert' },
+        'iodoform': { agent: 'I₂', cat: 'NaOH', cond: 'Warm' },
+        'dehydration': { agent: '-', cat: 'Conc. H₂SO₄', cond: '180°C' },
+        'esterification': { agent: 'CH₃COOH', cat: 'H₂SO₄', cond: 'Reflux' }, // Generic acid for demo
+        // Carbonyls
+        'reduction_carbonyl': { agent: 'NaBH₄', cat: 'MeOH', cond: 'RT' },
+        'tollens': { agent: '[Ag(NH₃)₂]⁺', cat: 'OH⁻', cond: 'Warm' },
+        'fehling': { agent: 'Cu²⁺ complex', cat: 'OH⁻', cond: 'Heat' },
+        'hcn_add': { agent: 'HCN', cat: 'NaCN', cond: 'pH 8' },
+        // Acids
+        'neutralization': { agent: 'NaOH', cat: '', cond: 'RT' },
+        'socl2': { agent: 'SOCl₂', cat: 'Pyridine', cond: 'Reflux' },
+        'reduction_acid': { agent: 'LiAlH₄', cat: 'Ether', cond: 'Dry' },
+        // Amines
+        'diazotization': { agent: 'NaNO₂/HCl', cat: 'HNO₂', cond: '0-5°C' },
+        'bromine_water': { agent: 'Br₂ (aq)', cat: 'H₂O', cond: 'RT' }
+    };
+
+    // 2. PRODUCT PREDICTION ENGINE
+    const calculateProduct = (reactant, reactionId) => {
+        let p = { name: '?', side: '', reagentDisplay: '', cat: '', cond: '', note: '' };
+        
+        // Load Reagent Data
+        const rData = REAGENTS[reactionId] || { agent: '?', cat: '', cond: '' };
+        p.reagentDisplay = rData.agent; p.cat = rData.cat; p.cond = rData.cond;
+
+        const r = reactant;
+
+        // --- ALKANES ---
+        if (reactionId === 'radical_sub') {
+            if(r==='Methane') p.name = 'Chloromethane';
+            else if(r==='Ethane') p.name = 'Chloroethane';
+            p.side = '+ HCl';
+        }
+        else if (reactionId === 'combustion') { p.name = 'Carbon Dioxide'; p.side = '+ H₂O'; }
+
+        // --- ALKENES ---
+        else if (reactionId === 'hydrogenation') { p.name = r.replace('ene', 'ane').replace('Ethene', 'Ethane'); }
+        else if (reactionId === 'halogenation_inert') { 
+            if(r==='Ethene') p.name = '1,2-Dibromoethane';
+            else if(r==='Propene') p.name = '1,2-Dibromopropane';
+            else p.name = '1,2-Dibromo-2-methylpropane';
+        }
+        else if (reactionId === 'halohydrin') {
+             if(r==='Ethene') p.name = '2-Bromoethanol';
+             else if(r==='Propene') p.name = '1-Bromo-2-propanol'; // Major
+             p.side = '+ HBr';
+        }
+        else if (reactionId === 'hydrohalogenation') { // Markovnikov
+            if(r==='Propene') p.name = '2-Bromopropane';
+            else if(r==='2-Methylprop-1-ene') p.name = '2-Bromo-2-methylpropane';
+            else p.name = 'Bromoethane';
+        }
+        else if (reactionId === 'hydrohalogenation_peroxide') { // Anti-Markovnikov
+            if(r==='Propene') p.name = '1-Bromopropane';
+            else if(r==='2-Methylprop-1-ene') p.name = '1-Bromo-2-methylpropane';
+            else p.name = 'Bromoethane';
+        }
+        else if (reactionId === 'hydration') {
+             if(r==='Ethene') p.name = 'Ethanol';
+             else if(r==='Propene') p.name = 'Propan-2-ol';
+        }
+        else if (reactionId === 'ox_strong') {
+            p.side = '+ CO₂ + H₂O'; // Generic cleavage side products
+            if(r==='Ethene') p.name = 'Carbon Dioxide';
+            else if(r==='Propene') p.name = 'Ethanoic Acid';
+            else if(r==='2-Methylprop-1-ene') p.name = 'Propanone';
+        }
+        else if (reactionId === 'ox_mild') {
+            p.side = '+ MnO₂';
+            if(r==='Ethene') p.name = 'Ethane-1,2-diol';
+            else if(r==='Propene') p.name = 'Propane-1,2-diol';
+        }
+
+        // --- BENZENE ---
+        else if (reactionId === 'nitration') {
+            if(r==='Benzene') p.name = 'Nitrobenzene';
+            else p.name = '1-Methyl-4-nitrobenzene';
+        }
+	else if (reactionId === 'halogenation_lewis') {
+            if(r==='Benzene') p.name = 'Bromobenzene';
+            else p.name = '4-Bromo-1-methylbenzene';
+        }
+        else if (reactionId === 'fc_alkylation') {
+            if(r==='Benzene') p.name = 'Methylbenzene';
+            else p.name = '1,4-Dimethylbenzene';
+        }
+        else if (reactionId === 'side_chain_ox') {
+            if(r==='Methylbenzene') p.name = 'Benzoic Acid';
+            else { p.name = 'Benzene'; p.note = 'No Reaction'; }
+        }
+
+        // --- ALCOHOLS ---
+        else if (reactionId === 'ox_alcohol_strong') {
+            if(r==='Ethanol') p.name = 'Ethanoic Acid';
+            else if(r==='Propan-2-ol') p.name = 'Propanone';
+            else if(r==='2-Methylpropan-2-ol') { p.name = r; p.note = 'No Reaction (3°)'; }
+        }
+        else if (reactionId === 'lucas') {
+             if(r==='2-Methylpropan-2-ol') p.name = '2-Chloro-2-methylpropane';
+             else if(r==='Propan-2-ol') p.name = '2-Chloropropane';
+             else { p.name = 'Ethanol'; p.note = 'No Reaction (1°)'; }
+        }
+        else if (reactionId === 'iodoform') {
+            if(r==='Ethanol' || r==='Propan-2-ol') { p.name = 'Triiodomethane'; p.side = '(Yellow Ppt)'; }
+            else { p.name = r; p.note = 'Negative Test'; }
+        }
+        else if (reactionId === 'esterification') {
+            p.name = 'Ethyl Ethanoate'; // Simplified for demo
+            p.side = '+ H₂O';
+        }
+
+        // --- CARBONYLS ---
+        else if (reactionId === 'reduction_carbonyl') {
+            if(r==='Propanone') p.name = 'Propan-2-ol';
+            else if(r==='Ethanal') p.name = 'Ethanol';
+        }
+        else if (reactionId === 'tollens' || reactionId === 'fehling') {
+            if(r==='Ethanal') { p.name = 'Ethanoate'; p.side = reactionId==='tollens' ? '+ Ag(s)' : '+ Cu₂O(s)'; }
+            else if(r==='Benzaldehyde' && reactionId==='tollens') { p.name = 'Benzoate'; p.side = '+ Ag(s)'; }
+            else { p.name = r; p.note = 'No Reaction (Ketone/Aromatic)'; }
+        }
+        else if (reactionId === 'hcn_add') {
+             p.name = r.replace('one','').replace('nal','') + 'cyanohydrin'; // Heuristic
+             if(r==='Propanone') p.name = '2-Hydroxy-2-methylpropanenitrile';
+             if(r==='Ethanal') p.name = '2-Hydroxypropanenitrile';
+        }
+
+        // --- ACIDS / AMINES ---
+        else if (reactionId === 'neutralization') { p.name = 'Sodium Ethanoate'; p.side = '+ H₂O'; }
+        else if (reactionId === 'socl2') { p.name = 'Ethanoyl Chloride'; p.side = '+ SO₂'; }
+        else if (reactionId === 'reduction_acid') { p.name = 'Ethanol'; }
+        else if (reactionId === 'diazotization') {
+            if(r==='Aniline') p.name = 'Benzenediazonium chloride';
+            else { p.name = 'Ethanol'; p.side = '+ N₂ (gas)'; }
+        }
+        else if (reactionId === 'bromine_water') {
+            if(r==='Aniline') { p.name = '2,4,6-Tribromoaniline'; p.side = '(White Ppt)'; }
+            else { p.name = r; p.note = 'No Reaction'; }
+        }
+
+        if(p.name === '?') p.name = 'Product';
+        return p;
+    };
+
+    // 3. OPSIN HOOK
+    const useOpsin = (iupacName) => {
+      const [smiles, setSmiles] = useState(null);
+      const [loading, setLoading] = useState(false);
+
+      // PRE-CACHE for instant demo performance
+      const CACHE = {
+        'Methane': 'C', 'Ethane': 'CC', 'Propane': 'CCC', 'Chloromethane': 'ClC', 'Chloroethane': 'ClCC','Bromoethane':'BrCC', '2-Bromo-2-methylpropane':'CC(C)(C)Br', '1-Bromo-2-methylpropane':'BrCC(C)(C)',
+        'Ethene': 'C=C', 'Propene': 'CC=C', '2-Methylprop-1-ene': 'CC(C)=C', 'Propane-1,2-diol':'CC(O)CO',
+        'Benzene': 'c1ccccc1', 'Methylbenzene': 'Cc1ccccc1', 'Nitrobenzene': '[O-][N+](=O)c1ccccc1', 'Benzoic Acid': 'O=C(O)c1ccccc1',
+        'Ethanol': 'CCO', 'Propan-2-ol': 'CC(O)C', '2-Methylpropan-2-ol': 'CC(C)(O)C', 'Phenol': 'Oc1ccccc1',
+        'Ethanal': 'CC=O', 'Propanone': 'CC(=O)C', 'Benzaldehyde': 'O=Cc1ccccc1','1-Methyl-4-nitrobenzene':'Cc1ccc(N(=O)=O)cc1',
+        'Ethanoic Acid': 'CC(=O)O', 'Ethyl Ethanoate': 'CC(=O)OCC', 'Ethanoyl Chloride': 'CC(=O)Cl', 'Ethanoate':'CC(=O)[O-]',
+        'Ethanamine': 'CCN', 'Aniline': 'Nc1ccccc1', 'Benzenediazonium chloride': '[N+]#N.c1ccccc1.[Cl-]','Benzoate':'O=C([O-])c1ccccc1',
+        'Carbon Dioxide': 'O=C=O', '1,2-Dibromoethane': 'BrCCBr', '2-Bromopropane': 'CC(Br)C','2-Chloropropane': 'CC(Cl)C', '1-Bromopropane': 'CCCBr','1,2-Dibromopropane': 'C(Br)C(Br)C', '1,2-Dibromo-2-methylpropane': 'CC(C)(Br)CBr',
+        'Ethane-1,2-diol': 'OCCO', 'Triiodomethane': 'IC(I)I', '2,4,6-Tribromoaniline': 'Nc1c(Br)cc(Br)cc1Br', '2-Bromoethanol': 'OCCBr', '1-Bromo-2-propanol':'CC(O)CBr',
+      'Bromobenzene':'Brc1ccccc1', '4-Bromo-1-methylbenzene':'Cc1ccc(Br)cc1', '1,4-Dimethylbenzene':'Cc1ccc(C)cc1', '2-Chloro-2-methylpropane':'CC(C)(C)Cl',
+	'2-Hydroxypropanenitrile':'CC(O)C#N', '2-Hydroxy-2-methylpropanenitrile':'CC(C)(O)C#N'
+};
+
+      useEffect(() => {
+        if (!iupacName) return;
+        const fetchSMILES = async () => {
+          setLoading(true);
+          if (CACHE[iupacName]) { setSmiles(CACHE[iupacName]); setLoading(false); return; }
+          
+          try {
+            const res = await fetch(`https://opsin.ch.cam.ac.uk/opsin/${iupacName}.json`);
+            if (res.ok) { const data = await res.json(); setSmiles(data.smiles); } 
+            else setSmiles(null);
+          } catch(e) { setSmiles(null); }
+          setLoading(false);
+        };
+        fetchSMILES();
+      }, [iupacName]);
+      return { smiles, loading };
+    };
+
+    // 4. CANVAS COMPONENT
+    const MoleculeCanvas = ({ iupac, label }) => {
+      const { smiles, loading } = useOpsin(iupac);
+      const canvasRef = useRef(null);
+
+      useEffect(() => {
+        if (smiles && window.SmilesDrawer && canvasRef.current) {
+          const drawer = new window.SmilesDrawer.Drawer({ width: 200, height: 150, bondThickness: 1.0, backgroundColor: 'transparent', drawingType: 'dark' });
+          window.SmilesDrawer.parse(smiles, (tree) => drawer.draw(tree, canvasRef.current, 'light', false));
+        }
+      }, [smiles]);
+
+      return (
+        <div className="flex flex-col items-center justify-center p-4 bg-slate-900 rounded-xl border border-slate-800 w-full h-full relative group shadow-inner">
+          <span className="absolute top-2 left-3 text-[10px] font-bold tracking-widest text-slate-500 uppercase">{label}</span>
+          {loading && <div className="loader"></div>}
+          {!loading && smiles && <canvas ref={canvasRef} width="200" height="150" className="w-full h-40 object-contain filter invert opacity-80 group-hover:opacity-100 transition-opacity"></canvas>}
+          {!loading && !smiles && <div className="text-slate-700 text-xs font-mono">Structure N/A</div>}
+          <div className="mt-2 px-3 py-1 bg-slate-800 rounded-full text-xs font-mono text-emerald-400 border border-slate-700">{iupac}</div>
+        </div>
+      );
+    };
+
+    // 5. MAIN SIMULATOR COMPONENT
+    const SimulationChamber = ({ initialReactant, initialReactionId, availableReactants }) => {
+      const [reactant, setReactant] = useState(initialReactant);
+      
+      // Auto-select valid reactant if props change
+      useEffect(() => {
+          if (availableReactants && !availableReactants.includes(reactant)) {
+             setReactant(availableReactants[0]);
+          }
+      }, [availableReactants]);
+
+      const result = useMemo(() => calculateProduct(reactant, initialReactionId), [reactant, initialReactionId]);
+
+      return (
+        <div className="flex flex-col h-full fade-in">
+          {/* CONTROL BAR */}
+          <div className="bg-slate-900 p-4 rounded-xl border border-slate-800 mb-6 flex flex-col md:flex-row gap-4 items-center justify-between shadow-lg">
+            <div className="flex items-center gap-2">
+                <div className="w-2 h-2 rounded-full bg-emerald-500 animate-pulse"></div>
+                <span className="text-xs font-bold text-slate-400 uppercase tracking-widest">Active Simulation</span>
+            </div>
+            <div className="flex items-center gap-3 w-full md:w-auto">
+                <label className="text-xs font-bold text-slate-500 uppercase">Reactant:</label>
+                <select value={reactant} onChange={(e) => setReactant(e.target.value)}
+                    className="bg-slate-950 border border-slate-700 text-emerald-400 text-sm rounded-lg focus:ring-emerald-500 focus:border-emerald-500 block w-full md:w-56 p-2.5 font-mono font-bold shadow-sm">
+                    {availableReactants.map(r => <option key={r} value={r}>{r}</option>)}
+                </select>
+            </div>
+          </div>
+
+          {/* VISUALIZATION */}
+          <div className="flex-1 bg-slate-900 rounded-2xl border border-slate-800 p-4 md:p-8 flex flex-col justify-center relative overflow-hidden">
+             <div className="absolute inset-0 opacity-5" style={{backgroundImage: 'radial-gradient(#94a3b8 1px, transparent 1px)', backgroundSize: '20px 20px'}}></div>
+             
+             <div className="flex flex-col lg:flex-row items-center justify-center gap-4 lg:gap-8 relative z-10">
+                {/* 1. Substrate */}
+                <div className="w-full lg:w-64 h-56 shrink-0"><MoleculeCanvas iupac={reactant} label="Substrate" /></div>
+
+                {/* Plus */}
+                <div className="text-slate-600 text-3xl font-light">+</div>
+
+                {/* 2. Reagent Block */}
+                <div className="w-28 h-28 flex flex-col items-center justify-center bg-slate-800 rounded-xl border-2 border-dashed border-slate-700 shrink-0 shadow-sm">
+                    <span className="text-[10px] font-bold text-slate-500 uppercase mb-1">Add</span>
+                    <div className="text-lg font-mono font-bold text-blue-400 text-center leading-tight">{result.reagentDisplay}</div>
+                </div>
+
+                {/* 3. Arrow Block */}
+                <div className="flex flex-col items-center w-32 shrink-0 mx-2">
+                    <div className="text-xs font-bold text-amber-500 mb-1 h-4">{result.cat}</div>
+                    <div className="arrow-body"><div className="arrow-head"></div></div>
+                    <div className="text-[10px] text-slate-500 mt-2 bg-slate-950 px-2 py-0.5 rounded border border-slate-800">{result.cond}</div>
+                </div>
+
+                {/* 4. Product */}
+                <div className="w-full lg:w-64 h-56 relative shrink-0">
+                    <MoleculeCanvas iupac={result.name} label="Major Product" />
+                    {result.side && <div className="absolute -bottom-6 right-0 text-slate-500 font-mono text-xs bg-slate-900 px-2 rounded border border-slate-800">{result.side}</div>}
+                </div>
+             </div>
+
+             {/* Note Footer */}
+             {result.note && (
+                <div className="mt-8 mx-auto bg-amber-500/10 border border-amber-500/20 text-amber-500 px-4 py-2 rounded-lg text-xs font-medium flex items-center gap-2">
+                    <span>⚠️</span> {result.note}
+                </div>
+             )}
+          </div>
+        </div>
+      );
+    };
+
+    window.mountReactApp = (containerId, props) => {
+        const root = ReactDOM.createRoot(document.getElementById(containerId));
+        root.render(<SimulationChamber {...props} />);
+    };
+  </script>
+
+  <script>
+    // COMPLETE SYLLABUS DATABASE
+    const DB = [
+      {
+        id: 'alkanes', name: 'Alkanes', icon: '🔥', desc: 'Combustion & Free Radical Substitution',
+        reactions: [
+          { id: 'combustion', name: 'Combustion', type: 'combustion', options: ['Methane', 'Ethane', 'Propane'], theory: 'Complete combustion produces CO₂ and H₂O. Highly exothermic.' },
+          { id: 'radical_sub', name: 'Free Radical Sub.', type: 'radical_sub', options: ['Methane', 'Ethane'], theory: 'Requires UV light for homolytic fission. Stages: Initiation, Propagation, Termination.' }
+        ]
+      },
+      {
+        id: 'alkenes', name: 'Alkenes', icon: '⚡', desc: 'Electrophilic Addition Reactions',
+        reactions: [
+          { id: 'hydrog', name: 'Hydrogenation', type: 'hydrogenation', options: ['Ethene', 'Propene'], theory: 'Reduction to Alkane using H₂/Ni catalyst at high temp.' },
+          { id: 'brom_inert', name: 'Halogenation (Inert)', type: 'halogenation_inert', options: ['Ethene', 'Propene', '2-Methylprop-1-ene'], theory: 'Test for unsaturation. Forms vicinal dihalide. Anti-addition.' },
+          { id: 'halohydrin', name: 'Halohydrin Formation', type: 'halohydrin', options: ['Ethene', 'Propene'], theory: 'In water, OH group adds to the more substituted carbon (Markovnikov-like).' },
+          { id: 'hbr_mark', name: 'Hydrohalogenation', type: 'hydrohalogenation', options: ['Ethene', 'Propene', '2-Methylprop-1-ene'], theory: 'Follows Markovnikov Rule. H adds to C with more H.' },
+          { id: 'hbr_anti', name: 'HBr + Peroxide', type: 'hydrohalogenation_peroxide', options: ['Propene', '2-Methylprop-1-ene'], theory: 'Anti-Markovnikov addition due to free radical mechanism in presence of peroxides.' },
+          { id: 'hydration', name: 'Hydration', type: 'hydration', options: ['Ethene', 'Propene'], theory: 'Industrial alcohol production. Requires Phosphoric Acid catalyst.' },
+          { id: 'ox_mild', name: 'Mild Oxidation', type: 'ox_mild', options: ['Ethene', 'Propene'], theory: 'Cold KMnO₄ forms vicinal diols (Glycols). Purple decoulourises.' },
+          { id: 'ox_strong', name: 'Strong Oxidation', type: 'ox_strong', options: ['Ethene', 'Propene', '2-Methylprop-1-ene'], theory: 'Hot KMnO₄ cleaves the double bond. Terminal =CH₂ becomes CO₂.' }
+        ]
+      },
+      {
+        id: 'benzene', name: 'Benzene', icon: '⌬', desc: 'Electrophilic Aromatic Substitution',
+        reactions: [
+          { id: 'nitration', name: 'Nitration', type: 'nitration', options: ['Benzene', 'Methylbenzene'], theory: 'H₂SO₄ generates NO₂⁺ electrophile. Methyl group activates ring (ortho/para).' },
+          { id: 'halogenation', name: 'Halogenation', type: 'halogenation_lewis', options: ['Benzene', 'Methylbenzene'], theory: 'Requires Lewis Acid (FeBr₃) to polarize Br₂.' },
+          { id: 'fc_alkyl', name: 'FC Alkylation', type: 'fc_alkylation', options: ['Benzene', 'Methylbenzene'], theory: 'Adds alkyl group using AlCl₃ catalyst.' },
+          { id: 'side_ox', name: 'Side-Chain Oxidation', type: 'side_chain_ox', options: ['Methylbenzene', 'Benzene'], theory: 'Alkyl side chains oxidize to Benzoic Acid. Benzene ring remains intact.' }
+        ]
+      },
+      {
+        id: 'alcohols', name: 'Alcohols', icon: '🍷', desc: 'Oxidation, Dehydration & Tests',
+        reactions: [
+          { id: 'lucas', name: 'Lucas Test', type: 'lucas', options: ['Ethanol', 'Propan-2-ol', '2-Methylpropan-2-ol'], theory: 'Distinguishes 1°/2°/3° alcohols based on turbidity rate. 3° is fastest.' },
+          { id: 'ox_strong', name: 'Strong Oxidation', type: 'ox_alcohol_strong', options: ['Ethanol', 'Propan-2-ol', '2-Methylpropan-2-ol'], theory: '1° -> Acid, 2° -> Ketone, 3° -> No Reaction.' },
+          { id: 'iodoform', name: 'Iodoform Test', type: 'iodoform', options: ['Ethanol', 'Propan-2-ol', '2-Methylpropan-2-ol'], theory: 'Positive for methyl carbinol group (CH₃-CH(OH)-). Yellow ppt.' },
+          { id: 'ester', name: 'Esterification', type: 'esterification', options: ['Ethanol', 'Phenol'], theory: 'Reacts with Carboxylic Acid to form sweet-smelling ester.' }
+        ]
+      },
+      {
+        id: 'carbonyls', name: 'Carbonyls', icon: '⚱️', desc: 'Nucleophilic Addition & Tests',
+        reactions: [
+          { id: 'reduction', name: 'Reduction', type: 'reduction_carbonyl', options: ['Ethanal', 'Propanone'], theory: 'NaBH₄ reduces Aldehydes to 1° Alcohols, Ketones to 2° Alcohols.' },
+          { id: 'tollens', name: 'Tollens\' Test', type: 'tollens', options: ['Ethanal', 'Propanone', 'Benzaldehyde'], theory: 'Silver Mirror Test. Oxidizes Aldehydes only (Aliphatic & Aromatic).' },
+          { id: 'fehling', name: 'Fehling\'s Test', type: 'fehling', options: ['Ethanal', 'Propanone', 'Benzaldehyde'], theory: 'Red ppt (Cu₂O). Positive for Aliphatic Aldehydes only.' },
+          { id: 'hcn', name: 'Addition of HCN', type: 'hcn_add', options: ['Ethanal', 'Propanone'], theory: 'Increases carbon chain length by one. Forms Cyanohydrin.' }
+        ]
+      },
+      {
+        id: 'acids', name: 'Carboxylic Acids', icon: '🍋', desc: 'Acidity & Derivatives',
+        reactions: [
+          { id: 'neutral', name: 'Neutralization', type: 'neutralization', options: ['Ethanoic Acid', 'Benzoic Acid'], theory: 'Reacts with bases to form salts and water.' },
+          { id: 'socl2', name: 'Acyl Chloride Form.', type: 'socl2', options: ['Ethanoic Acid', 'Benzoic Acid'], theory: 'SOCl₂ is preferred as side products (SO₂, HCl) are gases.' },
+          { id: 'red_acid', name: 'Reduction', type: 'reduction_acid', options: ['Ethanoic Acid'], theory: 'Requires strong reducing agent LiAlH₄. Reduces to 1° Alcohol.' }
+        ]
+      },
+      {
+        id: 'amines', name: 'Amines', icon: '🐟', desc: 'Basicity & Diazotization',
+        reactions: [
+          { id: 'hno2', name: 'Diazotization', type: 'diazotization', options: ['Ethanamine', 'Aniline'], theory: ' aliphatic amines release N₂ gas. Aromatic amines form stable diazonium salts at 0-5°C.' },
+          { id: 'br2_amine', name: 'Bromine Water', type: 'bromine_water', options: ['Aniline', 'Ethanamine'], theory: 'Electrophilic substitution. Aniline forms white ppt (2,4,6-tribromoaniline).' }
+        ]
+      }
+    ];
+
+    // INITIALIZE GRID
+    const grid = document.getElementById('categories-grid');
+    DB.forEach(cat => {
+        const card = document.createElement('div');
+        card.className = 'bg-slate-900 rounded-xl p-6 border border-slate-800 hover:border-emerald-500/50 hover:shadow-lg hover:shadow-emerald-500/10 transition-all group';
+        card.innerHTML = `
+          <div class="flex justify-between items-start mb-4">
+             <div class="text-4xl group-hover:scale-110 transition-transform duration-300">${cat.icon}</div>
+             <span class="text-xs font-bold text-slate-500 bg-slate-950 px-2 py-1 rounded border border-slate-800">${cat.reactions.length} Types</span>
+          </div>
+          <h3 class="text-xl font-bold text-white mb-2">${cat.name}</h3>
+          <p class="text-slate-400 text-sm mb-6 h-10 line-clamp-2">${cat.desc}</p>
+          <div class="space-y-2">
+            ${cat.reactions.map(r => `
+                <button onclick="router.navigate('reaction', {catId: '${cat.id}', reactId: '${r.id}'})"
+                  class="w-full text-left px-3 py-2 rounded-lg bg-slate-800 hover:bg-slate-700 text-sm text-slate-300 hover:text-emerald-400 transition-colors flex justify-between items-center group/btn">
+                  ${r.name} <span class="opacity-0 group-hover/btn:opacity-100 transition-opacity">→</span>
+                </button>
+            `).join('')}
+          </div>
+        `;
+        grid.appendChild(card);
+    });
+
+    // ROUTER
+    const router = {
+      navigate: (view, params) => {
+        document.querySelectorAll('[id^="view-"]').forEach(el => el.classList.add('hidden'));
+        document.getElementById(`view-${view}`).classList.remove('hidden');
+        if(view === 'reaction') loadReaction(params);
+      }
+    };
+
+    function loadReaction(params) {
+       const cat = DB.find(c => c.id === params.catId);
+       const react = cat.reactions.find(r => r.id === params.reactId);
+       
+       document.getElementById('reaction-header-title').innerText = `${cat.name} › ${react.name}`;
+       document.getElementById('theory-content').innerHTML = `
+         <h3 class="text-emerald-400 font-bold uppercase text-xs tracking-widest mb-2">Mechanism Theory</h3>
+         <p class="text-slate-300 text-sm leading-relaxed mb-6">${react.theory}</p>
+         <div class="bg-slate-950 p-4 rounded-lg border border-slate-800">
+            <div class="text-xs text-slate-500 uppercase font-bold mb-2">Parameters</div>
+            <div class="space-y-1 text-sm text-slate-300 font-mono">
+               <div>Class: <span class="text-white">${cat.name}</span></div>
+               <div>Type: <span class="text-white">${react.type}</span></div>
+            </div>
+         </div>
+       `;
+
+       // Mount React
+       const container = document.getElementById('react-simulator-root');
+       container.innerHTML = '';
+       window.mountReactApp('react-simulator-root', {
+          initialReactant: react.options[0],
+          initialReactionId: react.type,
+          availableReactants: react.options
+       });
+    }
+  </script>
+</body>
+</html>
